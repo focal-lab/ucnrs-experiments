@@ -34,52 +34,65 @@ ALL_IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-c
 DOWNLOADS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/"
 OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs"
 
+SKIP_EXISTING = False
 
-def project_dataset(dataset_id, processed_folder, nrs_year):
+
+def project_dataset(dataset_id, processed_folder, nrs_year, skip_existings=False):
     # Compute relavent paths based on dataset
+    # Path to the raw images
     images_folder = Path(ALL_IMAGES_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
+    # Path to the predictions from the model
     labels_folder = Path(
         f"/ofo-share/scratch-david/NRS-all-sites/preds/ucnrs-{nrs_year}/{dataset_id}"
     )
+
+    # The URL of files on CyVerse to download
+    cyverse_processed_url = "/".join(
+        (CYVERSE_URL_STUB, dataset_id, processed_folder, "full")
+    )
+    cameras_url = f"{cyverse_processed_url}/cameras.xml"
+    mesh_url = f"{cyverse_processed_url}/mesh-internal.ply"
+
+    # Where to download the files to
+    downloaded_mesh_file = Path(DOWNLOADS_FOLDER, "meshes", f"mesh_{dataset_id}.ply")
+    downloaded_cameras_file = Path(
+        DOWNLOADS_FOLDER, "cameras", f"cameras_file_{dataset_id}.xml"
+    )
+    # Output files for the per-face and geospaital results
     top_down_vector_projection_file = Path(
         OUTPUT_FOLDER, "geospatial_maps", f"{dataset_id}.geojson"
     )
     predicted_face_values_file = Path(OUTPUT_FOLDER, "face_values", f"{dataset_id}.npy")
 
-    cyverse_processed_url = "/".join(
-        (CYVERSE_URL_STUB, dataset_id, processed_folder, "full")
-    )
-
-    cameras_url = f"{cyverse_processed_url}/cameras.xml"
-    mesh_url = f"{cyverse_processed_url}/mesh-internal.ply"
-
-    temp_mesh_file = Path(DOWNLOADS_FOLDER, "meshes", f"mesh_{dataset_id}.ply")
-    temp_cameras_file = Path(
-        DOWNLOADS_FOLDER, "cameras", f"cameras_file_{dataset_id}.xml"
-    )
-
+    # Check if labels are present
     if not Path(labels_folder).is_dir():
         print(f"Skipping {dataset_id} due to missing folder of labels")
         return
 
-    if Path(predicted_face_values_file).is_file():
+    # If we're going to skip existing results, check if they have already been computed
+    if (
+        skip_existings
+        and predicted_face_values_file.is_file()
+        and top_down_vector_projection_file.is_file()
+    ):
         print(f"Dataset {dataset_id} exists already. Skipping")
         return
 
     # Ensure that the containing folders exist to save the downloaded data into
-    temp_cameras_file.parent.mkdir(exist_ok=True, parents=True)
-    temp_mesh_file.parent.mkdir(exist_ok=True, parents=True)
+    downloaded_cameras_file.parent.mkdir(exist_ok=True, parents=True)
+    downloaded_mesh_file.parent.mkdir(exist_ok=True, parents=True)
 
     # Download the mesh and cameras files
-    urlretrieve(cameras_url, temp_cameras_file)
+    urlretrieve(cameras_url, downloaded_cameras_file)
     print("retrieved cameras")
-    urlretrieve(mesh_url, temp_mesh_file)
+    urlretrieve(mesh_url, downloaded_mesh_file)
     print("retrieved mesh")
 
     try:
+        # Actually run the aggregation step
         aggregate_images(
-            temp_mesh_file,
-            temp_cameras_file,
+            downloaded_mesh_file,
+            downloaded_cameras_file,
             images_folder,
             labels_folder,
             original_image_folder=images_folder,
@@ -112,5 +125,8 @@ for _, row in processing_ids.iterrows():
     print(dataset_id, processed_id, nrs_year)
 
     project_dataset(
-        dataset_id=dataset_id, processed_folder=processed_id, nrs_year=nrs_year
+        dataset_id=dataset_id,
+        processed_folder=processed_id,
+        nrs_year=nrs_year,
+        skip_existings=SKIP_EXISTING,
     )
