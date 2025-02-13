@@ -31,18 +31,20 @@ CYVERSE_URL_STUB = (
     "https://data.cyverse.org/dav-anon/iplant/projects/ofo/public/missions/"
 )
 ALL_IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined"
-BASE_FOLDER = "/ofo-share/scratch-david/NRS-all-sites"
-DOWNLOADS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data"
+DOWNLOADS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/"
+OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs"
 
 
 def project_dataset(dataset_id, processed_folder, nrs_year):
     # Compute relavent paths based on dataset
     images_folder = Path(ALL_IMAGES_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
-    labels_folder = Path(f"{BASE_FOLDER}/preds/ucnrs-{nrs_year}/{dataset_id}")
-    top_down_vector_projection_file = Path(
-        BASE_FOLDER, "geospatial_maps", f"{dataset_id}.geojson"
+    labels_folder = Path(
+        f"/ofo-share/scratch-david/NRS-all-sites/preds/ucnrs-{nrs_year}/{dataset_id}"
     )
-    predicted_face_values_file = Path(BASE_FOLDER, "face_values", f"{dataset_id}.npy")
+    top_down_vector_projection_file = Path(
+        OUTPUT_FOLDER, "geospatial_maps", f"{dataset_id}.geojson"
+    )
+    predicted_face_values_file = Path(OUTPUT_FOLDER, "face_values", f"{dataset_id}.npy")
 
     cyverse_processed_url = "/".join(
         (CYVERSE_URL_STUB, dataset_id, processed_folder, "full")
@@ -51,8 +53,10 @@ def project_dataset(dataset_id, processed_folder, nrs_year):
     cameras_url = f"{cyverse_processed_url}/cameras.xml"
     mesh_url = f"{cyverse_processed_url}/mesh-internal.ply"
 
-    temp_mesh_file = Path(DOWNLOADS_FOLDER, "mesh_{dataset_id}.ply")
-    temp_cameras_file = Path(DOWNLOADS_FOLDER, "cameras_file_{dataset_id}.xml")
+    temp_mesh_file = Path(DOWNLOADS_FOLDER, "meshes", f"mesh_{dataset_id}.ply")
+    temp_cameras_file = Path(
+        DOWNLOADS_FOLDER, "cameras", f"cameras_file_{dataset_id}.xml"
+    )
 
     if not Path(labels_folder).is_dir():
         print(f"Skipping {dataset_id} due to missing folder of labels")
@@ -67,9 +71,9 @@ def project_dataset(dataset_id, processed_folder, nrs_year):
     temp_mesh_file.parent.mkdir(exist_ok=True, parents=True)
 
     # Download the mesh and cameras files
-    urlretrieve(str(cameras_url), temp_cameras_file)
+    urlretrieve(cameras_url, temp_cameras_file)
     print("retrieved cameras")
-    urlretrieve(str(mesh_url), temp_mesh_file)
+    urlretrieve(mesh_url, temp_mesh_file)
     print("retrieved mesh")
 
     try:
