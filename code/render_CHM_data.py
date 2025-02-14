@@ -4,21 +4,13 @@ import pandas as pd
 from geograypher.meshes import TexturedPhotogrammetryMesh
 from geograypher.cameras import MetashapeCameraSet
 
-
-IDS_TO_LABELS = {
-    0: "BE_bare_earth",
-    1: "HL_herbaceous_live",
-    2: "MM_man_made_object",
-    3: "SD_shrub_dead",
-    4: "SL_shrub_live",
-    5: "TD_tree_dead",
-    6: "TL_tree_live",
-    7: "W_water",
-}
-
+# A file containing all the dataset IDs
 PROCESSING_IDS_FILE = "/ofo-share/repos-david/UCNRS-experiments/data/processed_ids.csv"
+# Path to the folder of images used for photogrammetry
 ALL_IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined"
-DOWNLOADS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/"
+# Where the input photogrammetry products are
+PHOTOGRAMMETRY_PRODUCTS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/"
+# Where to save the results
 OUTPUT_FOLDER = (
     "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs/CHM_renders_vis"
 )
@@ -39,16 +31,22 @@ def render_chm(
     dataset_id,
     nrs_year,
     skip_existings=False,
-    take_every_nth_camera=100,
-    make_composite=True,
+    take_every_nth_camera=TAKE_EVERY_NTH_CAMERA,
+    make_composite=MAKE_COMPOSITE,
 ):
     # Compute relavent paths based on dataset
     # Path to the raw images
     images_folder = Path(ALL_IMAGES_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
     # Path to input photogrammetry products
-    mesh_file = Path(DOWNLOADS_FOLDER, "mesh", f"mesh-internal-{dataset_id[3:]}.ply")
-    cameras_file = Path(DOWNLOADS_FOLDER, "cameras", f"cameras-{dataset_id[3:]}.xml")
-    dtm_file = Path(DOWNLOADS_FOLDER, "DTM", f"dtm-ptcloud-{dataset_id[3:]}.tif")
+    mesh_file = Path(
+        PHOTOGRAMMETRY_PRODUCTS_FOLDER, "mesh", f"mesh-internal-{dataset_id[3:]}.ply"
+    )
+    cameras_file = Path(
+        PHOTOGRAMMETRY_PRODUCTS_FOLDER, "cameras", f"cameras-{dataset_id[3:]}.xml"
+    )
+    dtm_file = Path(
+        PHOTOGRAMMETRY_PRODUCTS_FOLDER, "DTM", f"dtm-ptcloud-{dataset_id[3:]}.tif"
+    )
 
     # Match the format of the input imagery for easy post-processing
     rendered_CHMs_folder = Path(OUTPUT_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
@@ -69,6 +67,7 @@ def render_chm(
     # Set the height above ground as the per-vertex texture
     mesh.load_texture(height_above_ground)
 
+    # If requested, take only every nth camera in the set.
     if take_every_nth_camera != 1:
         cameras = cameras.get_subset_cameras(
             range(0, len(cameras), take_every_nth_camera)
@@ -91,9 +90,10 @@ def render_chm(
 # Load the list of dataset IDs
 processing_ids = pd.read_csv(PROCESSING_IDS_FILE)
 for _, row in processing_ids.iterrows():
+    # Format the dataset ID
     dataset_id = f"{row.dataset_id:06}"
-    processed_id = row.processed_path
 
+    # Determine which year of data collections it corresponds to
     if dataset_id <= "000580":
         nrs_year = "2020"
     elif dataset_id <= "000630":
@@ -101,10 +101,9 @@ for _, row in processing_ids.iterrows():
     else:
         nrs_year = "2024"
 
+    # Render the CHMs for that dataset
     render_chm(
         dataset_id=dataset_id,
         nrs_year=nrs_year,
         skip_existings=SKIP_EXISTING,
-        take_every_nth_camera=TAKE_EVERY_NTH_CAMERA,
-        make_composite=MAKE_COMPOSITE,
     )
