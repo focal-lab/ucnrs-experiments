@@ -33,8 +33,8 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
     )
 
     # Path to input photogrammetry products
-    mesh_file = Path(DOWNLOADS_FOLDER, "meshes", f"mesh_{dataset_id}.ply")
-    cameras_file = Path(DOWNLOADS_FOLDER, "cameras", f"cameras_file_{dataset_id}.xml")
+    mesh_file = Path(DOWNLOADS_FOLDER, "mesh", f"mesh-internal-{dataset_id[3:]}.ply")
+    cameras_file = Path(DOWNLOADS_FOLDER, "cameras", f"cameras-{dataset_id[3:]}.xml")
 
     # Output files for the per-face and geospaital results
     top_down_vector_projection_file = Path(
@@ -71,8 +71,8 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
             aggregate_image_scale=0.25,
             take_every_nth_camera=1,
         )
-    except:
-        print(f"Dataset {dataset_id} failed")
+    except Exception as e:
+        print(f"Dataset {dataset_id} failed with the following error {e}")
 
 
 # Load the list of dataset IDs
