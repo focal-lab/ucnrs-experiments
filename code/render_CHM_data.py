@@ -25,12 +25,17 @@ RENDER_SCALE = 0.1
 TAKE_EVERY_NTH_CAMERA = 100
 # Show the rendered data alongside the original image. Useful for testing.
 MAKE_COMPOSITE = True
+# Should the mesh be shown
+VIS_MESH = True
+# The first dataset is very large, so it can be useful to skip it for experiments
+START_INDEX = 0
 
 
 def render_chm(
     dataset_id,
     nrs_year,
     skip_existings=False,
+    vis=VIS_MESH,
     take_every_nth_camera=TAKE_EVERY_NTH_CAMERA,
     make_composite=MAKE_COMPOSITE,
 ):
@@ -73,6 +78,9 @@ def render_chm(
             range(0, len(cameras), take_every_nth_camera)
         )
 
+    if vis:
+        mesh.vis(camera_set=cameras)
+
     try:
         # Save out the renders of height-above-ground from each perspective
         mesh.save_renders(
@@ -89,7 +97,7 @@ def render_chm(
 
 # Load the list of dataset IDs
 processing_ids = pd.read_csv(PROCESSING_IDS_FILE)
-for _, row in processing_ids.iterrows():
+for _, row in processing_ids.iloc[START_INDEX:, :].iterrows():
     # Format the dataset ID
     dataset_id = f"{row.dataset_id:06}"
 
