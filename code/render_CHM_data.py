@@ -19,13 +19,29 @@ IDS_TO_LABELS = {
 PROCESSING_IDS_FILE = "/ofo-share/repos-david/UCNRS-experiments/data/processed_ids.csv"
 ALL_IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined"
 DOWNLOADS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/"
-OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs"
+OUTPUT_FOLDER = (
+    "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs/CHM_renders_vis"
+)
 
+# Should the dataset be skipped if the output folder exists already
 SKIP_EXISTING = False
+# This controls the fidelity of the rendering by rendering as if the image were captured at this
+# fraction of the original resolution. A lower value results in faster runtimes and less space on
+# disk, but a smoother, less detailed rendered CHM image.
 RENDER_SCALE = 0.1
+# Subsample the cameras to 1 out of this number. Useful for testing.
+TAKE_EVERY_NTH_CAMERA = 100
+# Show the rendered data alongside the original image. Useful for testing.
+MAKE_COMPOSITE = True
 
 
-def render_chm(dataset_id, nrs_year, skip_existings=False):
+def render_chm(
+    dataset_id,
+    nrs_year,
+    skip_existings=False,
+    take_every_nth_camera=100,
+    make_composite=True,
+):
     # Compute relavent paths based on dataset
     # Path to the raw images
     images_folder = Path(ALL_IMAGES_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
@@ -35,9 +51,7 @@ def render_chm(dataset_id, nrs_year, skip_existings=False):
     dtm_file = Path(DOWNLOADS_FOLDER, "DTM", f"dtm-ptcloud-{dataset_id[3:]}.tif")
 
     # Match the format of the input imagery for easy post-processing
-    rendered_CHMs_folder = Path(
-        OUTPUT_FOLDER, "CHM_renders", f"{nrs_year}-ucnrs", dataset_id
-    )
+    rendered_CHMs_folder = Path(OUTPUT_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
 
     if skip_existings and rendered_CHMs_folder.is_dir():
         print(f"Skipping {dataset_id} because output folder exists")
@@ -55,19 +69,28 @@ def render_chm(dataset_id, nrs_year, skip_existings=False):
     # Set the height above ground as the per-vertex texture
     mesh.load_texture(height_above_ground)
 
-    # Save out the renders of height-above-ground from each perspective
-    mesh.save_renders(
-        cameras,
-        render_image_scale=RENDER_SCALE,
-        output_folder=rendered_CHMs_folder,
-        save_native_resolution=False,
-        cast_to_uint8=False,
-    )
+    if take_every_nth_camera != 1:
+        cameras = cameras.get_subset_cameras(
+            range(0, len(cameras), take_every_nth_camera)
+        )
+
+    try:
+        # Save out the renders of height-above-ground from each perspective
+        mesh.save_renders(
+            cameras,
+            render_image_scale=RENDER_SCALE,
+            output_folder=rendered_CHMs_folder,
+            save_native_resolution=False,
+            cast_to_uint8=False,
+            make_composites=make_composite,
+        )
+    except Exception as e:
+        print(f"Dataset {dataset_id} failed with the following exception: {e}")
 
 
 # Load the list of dataset IDs
 processing_ids = pd.read_csv(PROCESSING_IDS_FILE)
-for _, row in list(processing_ids.iterrows())[3:]:
+for _, row in processing_ids.iterrows():
     dataset_id = f"{row.dataset_id:06}"
     processed_id = row.processed_path
 
@@ -82,4 +105,6 @@ for _, row in list(processing_ids.iterrows())[3:]:
         dataset_id=dataset_id,
         nrs_year=nrs_year,
         skip_existings=SKIP_EXISTING,
+        take_every_nth_camera=TAKE_EVERY_NTH_CAMERA,
+        make_composite=MAKE_COMPOSITE,
     )
