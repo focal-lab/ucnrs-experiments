@@ -56,8 +56,15 @@ def render_chm(
     # Match the format of the input imagery for easy post-processing
     rendered_CHMs_folder = Path(OUTPUT_FOLDER, f"{nrs_year}-ucnrs", dataset_id)
 
+    if not images_folder.is_dir():
+        print(
+            f"Skipping {dataset_id} because there is no corresponding folder of images"
+        )
+        return
+
     if skip_existings and rendered_CHMs_folder.is_dir():
         print(f"Skipping {dataset_id} because output folder exists")
+        return
 
     # Load the mesh and the cameras
     mesh = TexturedPhotogrammetryMesh(mesh_file, transform_filename=cameras_file)
