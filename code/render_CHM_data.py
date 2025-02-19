@@ -11,12 +11,10 @@ ALL_IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-c
 # Where the input photogrammetry products are
 PHOTOGRAMMETRY_PRODUCTS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/"
 # Where to save the results
-OUTPUT_FOLDER = (
-    "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs/CHM_renders_vis"
-)
+OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs/CHM_pointcloud_renders_vis"
 
 # Should the dataset be skipped if the output folder exists already
-SKIP_EXISTING = False
+SKIP_EXISTING = True
 # This controls the fidelity of the rendering by rendering as if the image were captured at this
 # fraction of the original resolution. A lower value results in faster runtimes and less space on
 # disk, but a smoother, less detailed rendered CHM image.
@@ -28,7 +26,9 @@ MAKE_COMPOSITE = True
 # Should the mesh be shown
 VIS_MESH = True
 # The first dataset is very large, so it can be useful to skip it for experiments
-START_INDEX = 0
+START_INDEX = 10
+# Should the pointcloud be used for the CHM values rather than the mesh
+USE_POINTCLOUD_CHM = True
 
 
 def render_chm(
@@ -38,6 +38,7 @@ def render_chm(
     vis=VIS_MESH,
     take_every_nth_camera=TAKE_EVERY_NTH_CAMERA,
     make_composite=MAKE_COMPOSITE,
+    use_point_cloud_CHM=True,
 ):
     # Compute relavent paths based on dataset
     # Path to the raw images
@@ -51,6 +52,9 @@ def render_chm(
     )
     dtm_file = Path(
         PHOTOGRAMMETRY_PRODUCTS_FOLDER, "DTM", f"dtm-ptcloud-{dataset_id[3:]}.tif"
+    )
+    chm_file = Path(
+        PHOTOGRAMMETRY_PRODUCTS_FOLDER, "CHM", f"chm-ptcloud-{dataset_id[3:]}.tif"
     )
 
     # Match the format of the input imagery for easy post-processing
@@ -74,10 +78,15 @@ def render_chm(
         original_image_folder=images_folder,
     )
 
-    # Compute the height of each mesh vertex above the DTM ground estimate
-    height_above_ground = mesh.get_height_above_ground(dtm_file)
-    # Set the height above ground as the per-vertex texture
-    mesh.load_texture(height_above_ground)
+    if use_point_cloud_CHM:
+        # This option is using the pointcloud CHM
+        mesh.load_texture(texture=chm_file)
+    else:
+        # This option is using the mesh CHM
+        # Compute the height of each mesh vertex above the DTM ground estimate
+        height_above_ground = mesh.get_height_above_ground(dtm_file)
+        # Set the height above ground as the per-vertex texture
+        mesh.load_texture(height_above_ground)
 
     # If requested, take only every nth camera in the set.
     if take_every_nth_camera != 1:
@@ -121,4 +130,5 @@ for _, row in processing_ids.iloc[START_INDEX:, :].iterrows():
         dataset_id=dataset_id,
         nrs_year=nrs_year,
         skip_existings=SKIP_EXISTING,
+        use_point_cloud_CHM=USE_POINTCLOUD_CHM,
     )
