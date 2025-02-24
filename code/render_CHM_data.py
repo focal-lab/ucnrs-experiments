@@ -1,7 +1,8 @@
 from pathlib import Path
 import pandas as pd
+import math
 
-from geograypher.meshes import TexturedPhotogrammetryMesh
+from geograypher.meshes.derived_meshes import TexturedPhotogrammetryMeshChunked
 from geograypher.cameras import MetashapeCameraSet
 
 # A file containing all the dataset IDs
@@ -71,7 +72,7 @@ def render_chm(
         return
 
     # Load the mesh and the cameras
-    mesh = TexturedPhotogrammetryMesh(mesh_file, transform_filename=cameras_file)
+    mesh = TexturedPhotogrammetryMeshChunked(mesh_file, transform_filename=cameras_file)
     cameras = MetashapeCameraSet(
         camera_file=cameras_file,
         image_folder=images_folder,
@@ -97,6 +98,11 @@ def render_chm(
     if vis:
         mesh.vis(camera_set=cameras)
 
+    # For large meshes it can dramatically speed up rendering to cluster the cameras and only render
+    # the mesh within a threshold distance of that chunk. Select the number of chunks so there are
+    # roughly 200 cameras per chunk.
+    n_clusters = int(math.ceil(len(cameras) / 200))
+
     try:
         # Save out the renders of height-above-ground from each perspective
         mesh.save_renders(
@@ -106,6 +112,7 @@ def render_chm(
             save_native_resolution=False,
             cast_to_uint8=False,
             make_composites=make_composite,
+            n_clustesr=n_clusters,
         )
     except Exception as e:
         print(f"Dataset {dataset_id} failed with the following exception: {e}")
