@@ -33,7 +33,7 @@ def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
     rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
     # Replace NaN values with 0
-    chm = np.nan_to_num(chm, nan=0)
+    chm = np.nan_to_num(chm, nan=0.0)
 
     # Upsample CHM to RGB's size
     chm_resized = cv2.resize(chm, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_CUBIC)
@@ -46,12 +46,9 @@ def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
     chm_scaled = sqrt_rescale(chm_scaled)
 
     rgb_chm = rgb.copy()
+    # Replace the blue channel with the CHM
     rgb_chm[:,:,2] = chm_scaled
-
-    # Visualize the result
-    plt.imshow(rgb_chm)
-    plt.title(chm_path)
-    plt.show()
+    return rgb_chm
 
 
 # Set the input directories
@@ -63,5 +60,8 @@ global_min, global_max = compute_global_chm_min_max("/ofo-share/scratch-ciro/ucn
 i = 0  # number of images to visualize
 for chm, rgb in zip(chm_files, rgb_files):
     if i < 3:
-        merge_chm_rgb(chm, rgb, float(global_min), float(global_max))
+        rgb_chm = merge_chm_rgb(chm, rgb, float(global_min), float(global_max))
         i += 1
+        # Visualize the result
+        plt.imshow(rgb_chm)
+        plt.show()
