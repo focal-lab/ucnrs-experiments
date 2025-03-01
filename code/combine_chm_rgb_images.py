@@ -8,14 +8,13 @@ def compute_global_chm_min_max(chm_dir):
     """Compute the minimum and maximum CHM value across the dataset"""
     chm_files = glob(os.path.join(chm_dir, "*.npy"))
 
-    for i, chm_path in enumerate(chm_files):
+    chm_min = np.inf
+    chm_max = -np.inf
+
+    for chm_path in chm_files:
         chm = np.load(chm_path)
-        chm = np.nan_to_num(chm, nan=0)
-        if i == 0:
-            chm_min = np.min(chm)
-            chm_max = np.max(chm)
-        chm_min = min(chm_min, np.min(chm))
-        chm_max = max(chm_max, np.max(chm))
+        chm_min = min(chm_min, np.nanmin(chm))
+        chm_max = max(chm_max, np.nanmax(chm))
 
     return chm_min, chm_max
 
