@@ -21,8 +21,9 @@ def compute_global_chm_min_max(chm_dir):
 
 def sqrt_rescale(chm):
     """non-linear rescaling of CHM"""
-    chm_rescaled = np.sqrt(chm)
+    chm_rescaled = np.sqrt(chm) * np.sqrt(255)
     return chm_rescaled.astype(np.uint8)
+
 
 def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
     chm = np.load(chm_path)
@@ -37,17 +38,16 @@ def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
     # Upsample CHM to RGB's size
     chm_resized = cv2.resize(chm, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_CUBIC)
 
-    # Normalize CHM to 0-255 range
-    chm_scaled = (chm_resized - global_min) / (global_max - global_min) * 255
-    chm_scaled = chm_scaled.astype(np.uint8)
-
     # Apply square root rescaling for non-linear transformation
-    chm_scaled = sqrt_rescale(chm_scaled)
+    chm_scaled = sqrt_rescale(chm_resized)
 
-    rgb_chm = rgb.copy()
+    # Normalize CHM to 0-255 range
+    chm_normalized = (chm_scaled - global_min) / (global_max - global_min) * 255
+    chm_normalized = chm_normalized.astype(np.uint8)
+
     # Replace the blue channel with the CHM
-    rgb_chm[:,:,2] = chm_scaled
-    return rgb_chm
+    rgb[:,:,2] = chm_normalized
+    return rgb
 
 
 # Set the input directories
