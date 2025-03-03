@@ -1,14 +1,12 @@
 import numpy as np
 import cv2
-import os
 from glob import glob
 from tqdm import tqdm
 from pathlib import Path
-import matplotlib.pyplot as plt
 
-def compute_global_chm_min_max(chm_dir):
+def compute_global_chm_min_max(chm_dir: Path):
     """Compute the minimum and maximum CHM value across the dataset"""
-    chm_files = glob(os.path.join(chm_dir, "*.npy"))
+    chm_files = list(chm_dir.glob("*.npy"))
 
     chm_min = np.inf
     chm_max = -np.inf
@@ -53,23 +51,25 @@ def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
 
 
 # Set the input and output directories
-CHM_FOLDER_PATH = "/ofo-share/scratch-ciro/ucnrs-exp/2023-ucnrs/000610/000610-01/00/"
-RGB_FOLDER_PATH = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/2023-ucnrs/000610/000610-01/00/"
+CHM_FOLDER_PATH = Path("/ofo-share/scratch-ciro/ucnrs-exp/2023-ucnrs/000610/000610-01/00/")
+RGB_FOLDER_PATH = Path("/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/2023-ucnrs/000610/000610-01/00/")
+SAVE_PATH = Path("/ofo-share/repos-amritha/extras/ucnrs/rgb_chm")
 
-SAVE_PATH = "/ofo-share/repos-amritha/extras/ucnrs/rgb_chm"
+# Ensure save directory exists
+SAVE_PATH.mkdir(parents=True, exist_ok=True)
 
-chm_files = sorted(glob(CHM_FOLDER_PATH + "*.npy"))
-rgb_files = sorted(glob(RGB_FOLDER_PATH + "*.JPG"))
+# Get sorted lists of CHM and RGB files
+chm_files = sorted(CHM_FOLDER_PATH.glob("*.npy"))
+rgb_files = sorted(RGB_FOLDER_PATH.glob("*.JPG"))
 
+# Compute global min/max for CHM normalization
 global_min, global_max = compute_global_chm_min_max(CHM_FOLDER_PATH)
 
-# Process and save images
-for chm, rgb in zip(chm_files, rgb_files):
-    rgb_chm = merge_chm_rgb(chm, rgb, float(global_min), float(global_max))
+for chm_path, rgb_path in tqdm(zip(chm_files, rgb_files), total=len(chm_files), desc="Processing Images", unit="image"):
+    rgb_chm = merge_chm_rgb(str(chm_path), str(rgb_path), float(global_min), float(global_max))
 
     # Get filename without extension
-    base_name = os.path.splitext(os.path.basename(rgb))[0]
-    output_path = os.path.join(SAVE_PATH, f"{base_name}_rgb_chm.jpg")
+    output_path = SAVE_PATH / f"{rgb_path.stem}_rgb_chm.jpg"
 
     # Convert RGB to BGR and save the image
     cv2.imwrite(output_path, cv2.cvtColor(rgb_chm, cv2.COLOR_RGB2BGR))
