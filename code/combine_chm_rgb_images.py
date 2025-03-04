@@ -27,13 +27,16 @@ def sqrt_rescale(chm):
 
 def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
     chm = np.load(chm_path)
-    rgb = cv2.imread(rgb_path, cv2.IMREAD_UNCHANGED)
+    rgb = cv2.imread(rgb_path)
 
     # cv2 reads images in BGR, so convert it to RGB
     rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
     # Replace NaN values with 0
     chm = np.nan_to_num(chm, nan=0.0)
+
+    # Invert CHM horizontall and vertically to match the orientation of the RGB images
+    chm = np.flipud(np.fliplr(chm))
 
     # Upsample CHM to RGB's size
     chm_resized = cv2.resize(chm, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_CUBIC)
@@ -53,7 +56,7 @@ def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
 # Set the input and output directories
 CHM_FOLDER_PATH = Path("/ofo-share/scratch-ciro/ucnrs-exp/2023-ucnrs/000610/000610-01/00/")
 RGB_FOLDER_PATH = Path("/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/2023-ucnrs/000610/000610-01/00/")
-SAVE_PATH = Path("/ofo-share/repos-amritha/extras/ucnrs/rgb_chm")
+SAVE_PATH = Path("/ofo-share/repos-amritha/extras/ucnrs/rgb_chm_mesh")
 
 # Ensure save directory exists
 SAVE_PATH.mkdir(parents=True, exist_ok=True)
