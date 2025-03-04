@@ -35,7 +35,7 @@ def merge_chm_rgb(chm_path, rgb_path, global_min, global_max):
     # Replace NaN values with 0
     chm = np.nan_to_num(chm, nan=0.0)
 
-    # Invert CHM horizontall and vertically to match the orientation of the RGB images
+    # Invert CHM horizontally and vertically to match the orientation of the RGB images
     chm = np.flipud(np.fliplr(chm))
 
     # Upsample CHM to RGB's size
