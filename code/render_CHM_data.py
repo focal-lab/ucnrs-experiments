@@ -29,7 +29,11 @@ VIS_MESH = True
 # The first dataset is very large, so it can be useful to skip it for experiments
 START_INDEX = 10
 # Should the pointcloud be used for the CHM values rather than the mesh
-USE_POINTCLOUD_CHM = True
+USE_POINTCLOUD_CHM = False
+# How many cameras to include in single cluster, for which a portion of the mesh is cropped out.
+# It's unclear what the ideal number is, it balances the cost of a large mesh per cluster with
+# having to subset the mesh multiple times.
+N_CAMERAS_PER_CLUSTER = 100
 
 
 def render_chm(
@@ -100,8 +104,8 @@ def render_chm(
 
     # For large meshes it can dramatically speed up rendering to cluster the cameras and only render
     # the mesh within a threshold distance of that chunk. Select the number of chunks so there are
-    # roughly 200 cameras per chunk.
-    n_clusters = int(math.ceil(len(cameras) / 200))
+    # roughly N_CAMERAS_PER_CLUSTER cameras per chunk.
+    n_clusters = int(math.ceil(len(cameras) / N_CAMERAS_PER_CLUSTER))
 
     try:
         # Save out the renders of height-above-ground from each perspective
@@ -112,7 +116,7 @@ def render_chm(
             save_native_resolution=False,
             cast_to_uint8=False,
             make_composites=make_composite,
-            n_clustesr=n_clusters,
+            n_clusters=n_clusters,
         )
     except Exception as e:
         print(f"Dataset {dataset_id} failed with the following exception: {e}")
