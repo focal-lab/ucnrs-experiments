@@ -9,12 +9,13 @@ PROCESSING_IDS_FILE = "/ofo-share/repos-david/UCNRS-experiments/data/processed_i
 DOWNLOADS_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data"
 SKIP_EXISTING = True
 
-# CHM, DSM, ortho, mesh, cameras
-DOWNLOAD_TYPE = "cameras"
+# Change this line to control what gets downloaded. The options are: CHM, DSM, DTM, ortho, mesh, cameras
+DOWNLOAD_TYPE = "ortho"
 
 DOWNLOAD_FILE_STEM = {
     "CHM": "chm-ptcloud",
     "DSM": "dsm-ptcloud",
+    "DTM": "dtm-ptcloud",
     "ortho": "orthomosaic",
     "mesh": "mesh-internal",
     "cameras": "cameras",
@@ -22,6 +23,7 @@ DOWNLOAD_FILE_STEM = {
 DOWNLOAD_FILE_EXTENSION = {
     "CHM": "tif",
     "DSM": "tif",
+    "DTM": "tif",
     "ortho": "tif",
     "mesh": "ply",
     "cameras": "xml",
@@ -49,9 +51,12 @@ for _, row in processing_ids.iterrows():
 
     if SKIP_EXISTING and Path(output_file).is_file():
         print(f"Skipping {output_file} since it exists already")
-        pass
+        continue
 
     # Ensure that the folder to download to exists
     Path(output_file).parent.mkdir(exist_ok=True, parents=True)
     print(f"Downloading {output_file}")
-    urlretrieve(cyverse_processed_url, output_file)
+    try:
+        urlretrieve(cyverse_processed_url, output_file)
+    except:
+        print(f"Failed to download {cyverse_processed_url}")
