@@ -204,11 +204,6 @@ DATASETS = (
 )
 
 for dataset in DATASETS:
-    labels_folder = f"/ofo-share/repos-david/UCNRS-experiments/data/labels/labeled_images_12_17_merged_classes_standardized/{dataset}"
-
-    if not Path(labels_folder).is_dir():
-        print(f"skipping {dataset} since there are no labels")
-        continue
 
     if int(dataset[3:]) <= 588:
         year = "2020"
@@ -218,21 +213,26 @@ for dataset in DATASETS:
         year = "2024"
 
     images_path = f"/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/{year}-ucnrs/{dataset}"
+    labels_folder = f"/ofo-share/repos-david/UCNRS-experiments/data/labels/labeled_images_12_17_merged_classes_standardized/{year}-ucnrs/{dataset}"
 
-    photogrammetry_folders = sorted(
-        Path(f"/ofo-share/drone-data-publish/01/{dataset}").glob("processed*")
-    )
-    if len(photogrammetry_folders) < 1:
+    if not Path(labels_folder).is_dir():
+        print(f"skipping {dataset} since there are no labels")
         continue
-    photogrammetry_folder = Path(photogrammetry_folders[-1], "full")
-    mesh_file = Path(photogrammetry_folder, "mesh-internal.ply")
-    cameras_file = Path(photogrammetry_folder, "cameras.xml")
+
+    mesh_file = Path(
+        "/ofo-share/repos-david/UCNRS-experiments/data/photogrammetry_products/mesh",
+        f"mesh-internal-{dataset[3:]}.ply",
+    )
+    cameras_file = Path(
+        "/ofo-share/repos-david/UCNRS-experiments/data/photogrammetry_products/cameras",
+        f"cameras-{dataset[3:]}.xml",
+    )
 
     subset_saved_images_folder = Path(
-        f"/ofo-share/scratch-david/NRS-multi-year/rendered_labels/{dataset}/images"
+        f"/ofo-share/repos-david/UCNRS-experiments/data/labels/geograypher_rendered_labels/{dataset}/images"
     )
     renders_folder = Path(
-        f"/ofo-share/scratch-david/NRS-multi-year/rendered_labels/{dataset}/renders"
+        f"/ofo-share/repos-david/UCNRS-experiments/data/labels/geograypher_rendered_labels/{dataset}/renders"
     )
 
     try:
@@ -246,5 +246,6 @@ for dataset in DATASETS:
             renders_folder=renders_folder,
             ids_to_labels=IDS_TO_LABELS,
         )
-    except:
+    except Exception as e:
         print(f"dataset {dataset} failed")
+        print(e)
