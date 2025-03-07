@@ -34,6 +34,7 @@ def parse_args():
     parser.add_argument(
         "--take-every-nth-camera",
         default=100,
+        type=int,
         help="Subsample the cameras to 1 out of this number. Useful for testing.",
     )
     parser.add_argument(
@@ -47,6 +48,7 @@ def parse_args():
     parser.add_argument(
         "--start-index",
         default=0,
+        type=int,
         help="The first dataset is very large, so it can be useful to skip it for experiments",
     )
     parser.add_argument(
@@ -165,7 +167,7 @@ for _, row in processing_ids.iloc[args.start_index :, :].iterrows():
     dataset_id = f"{row.dataset_id:06}"
 
     # Determine which year of data collections it corresponds to
-    if dataset_id <= "000580":
+    if dataset_id <= "000588":
         nrs_year = "2020"
     elif dataset_id <= "000630":
         nrs_year = "2023"
