@@ -42,12 +42,6 @@ def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
     chm = np.load(chm_path)
     rgb = cv2.imread(rgb_path)
 
-    if method == "replace_blue":
-        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
-        
-    elif method == "intensity_modulation":
-        hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
-
     # Replace NaN values with 0
     chm = np.nan_to_num(chm, nan=0.0)
 
@@ -65,10 +59,12 @@ def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
     chm_normalized = chm_normalized.astype(np.uint8)
 
     if method == "replace_blue":
+        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
         rgb[:,:,2] = chm_normalized
         return rgb
     
     elif method == "intensity_modulation":
+        hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
         hsv[:, :, 2] = np.clip(hsv[:, :, 2] + chm_normalized * 0.5, 0, 255)
         # hsv[:, :, 2] = np.clip((hsv[:, :, 2] * 0.5) + (chm_normalized * 0.5), 0, 255)
         rgb_modulated = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
