@@ -11,21 +11,6 @@ MERGED_DATA_SAVE_DIR = "/ofo-share/scratch-amritha/NRS-data/chm-merged/ptcloud/i
 MERGE_METHOD = "intensity_modulation"  # choose from: ["intensity_modulation", "replace_blue"]
 
 
-with open(PATH_TO_MAPPING, "r") as file:
-    data_dict = json.load(file)
-
-
-all_data_image_paths = list(data_dict.values())
-all_data_chm_paths = [path.replace("/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/", CHM_ROOT_DIR) for path in all_data_image_paths]
-all_data_chm_paths = [path.replace(".JPG", ".npy") for path in all_data_chm_paths]
-all_data_chm_paths = [path.replace(".jpg", ".npy") for path in all_data_chm_paths]
-
-subset_data_image_paths = list(data_dict.keys())
-new_subset_save_paths = [path.replace("/ofo-share/scratch-david/NRS_labeling/", MERGED_DATA_SAVE_DIR) for path in subset_data_image_paths]
-
-if len(new_subset_save_paths) != len(all_data_image_paths):
-    raise ValueError("Mismatch in number of images")
-
 def compute_global_chm_min_max(chm_files):
     """Compute the minimum and maximum CHM value across the dataset"""
     chm_min = np.inf
@@ -46,15 +31,6 @@ def compute_global_chm_min_max(chm_files):
             skipped_files.append(chm_path)
 
     return chm_min, chm_max, skipped_files
-
-global_min, global_max, skipped = compute_global_chm_min_max(all_data_chm_paths)
-print("Skipped: ", skipped)
-
-new_subset_save_paths = [path.replace('.jpg', '.JPG') if path.endswith('.jpg') else path for path in new_subset_save_paths]
-# mapping from CHM file path to the new subset dataset path 
-chm_to_save_path = dict(zip(all_data_chm_paths, new_subset_save_paths))
-
-print(f"Saving {len(chm_to_save_path)} images")
 
 def sqrt_rescale(chm):
     """non-linear rescaling of CHM"""
@@ -97,6 +73,31 @@ def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
         # hsv[:, :, 2] = np.clip((hsv[:, :, 2] * 0.5) + (chm_normalized * 0.5), 0, 255)
         rgb_modulated = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
         return rgb_modulated
+
+
+
+with open(PATH_TO_MAPPING, "r") as file:
+    data_dict = json.load(file)
+
+all_data_image_paths = list(data_dict.values())
+all_data_chm_paths = [path.replace("/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/", CHM_ROOT_DIR) for path in all_data_image_paths]
+all_data_chm_paths = [path.replace(".JPG", ".npy") for path in all_data_chm_paths]
+all_data_chm_paths = [path.replace(".jpg", ".npy") for path in all_data_chm_paths]
+
+subset_data_image_paths = list(data_dict.keys())
+new_subset_save_paths = [path.replace("/ofo-share/scratch-david/NRS_labeling/", MERGED_DATA_SAVE_DIR) for path in subset_data_image_paths]
+
+if len(new_subset_save_paths) != len(all_data_image_paths):
+    raise ValueError("Mismatch in number of images")
+
+global_min, global_max, skipped = compute_global_chm_min_max(all_data_chm_paths)
+print("Skipped: ", skipped)
+
+new_subset_save_paths = [path.replace('.jpg', '.JPG') if path.endswith('.jpg') else path for path in new_subset_save_paths]
+# mapping from CHM file path to the new subset dataset path 
+chm_to_save_path = dict(zip(all_data_chm_paths, new_subset_save_paths))
+
+print(f"Saving {len(chm_to_save_path)} images")
 
 
 for image, chm in tqdm(zip(all_data_image_paths, all_data_chm_paths), total=len(all_data_chm_paths), desc="Processing Images", unit="image"):
