@@ -1,13 +1,14 @@
 import json
 import numpy as np
 import cv2
+from PIL import Image
 import shutil
 import os
 from tqdm import tqdm
 
 PATH_TO_MAPPING = "/ofo-share/repos-amritha/extras/ucnrs/subset_to_all_images_mapping.json"  # output of find_corresponding_image_for_subset.py
 CHM_ROOT_DIR = "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs/CHM_pointcloud_renders/"  # important to include '/' at the end since we do substr replacement
-MERGED_DATA_SAVE_DIR = "/ofo-share/scratch-amritha/NRS-data/chm-merged/ptcloud/intensity-modulation/"
+MERGED_DATA_SAVE_DIR = "/ofo-share/scratch-amritha/NRS-data/chm-merged/ptcloud/rotation-fixed/intensity-modulation/"
 MERGE_METHOD = "intensity_modulation"  # choose from: ["intensity_modulation", "replace_blue"]
 
 
@@ -38,39 +39,62 @@ def sqrt_rescale(chm):
     return chm_rescaled.astype(np.uint8)
 
 def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
-    
     chm = np.load(chm_path)
-    rgb = cv2.imread(rgb_path)
+    rgb_pil = Image.open(rgb_path)
 
-    # Replace NaN values with 0
+    # 274 is the numeric value for the "Orientation" exif field.
+    orientation_flag = rgb_pil.getexif()[274]
+    output_exif = Image.Exif()
+    output_exif[274] = orientation_flag
+
+    rgb = np.array(rgb_pil)
+    
+    # Replace NaN values in CHM with 0
     chm = np.nan_to_num(chm, nan=0.0)
-
-    # Invert CHM horizontally and vertically to match the orientation of the RGB images
-    chm = np.flipud(np.fliplr(chm))
-
-    # Upsample CHM to RGB's size
+    
+    # Resize CHM to match RGB dimensions
     chm_resized = cv2.resize(chm, (rgb.shape[1], rgb.shape[0]), interpolation=cv2.INTER_CUBIC)
-
+    
     # Apply square root rescaling for non-linear transformation
     chm_scaled = sqrt_rescale(chm_resized)
-
+    
     # Normalize CHM to 0-255 range
     chm_normalized = (chm_scaled - sqrt_rescale(global_min)) / (sqrt_rescale(global_max) - sqrt_rescale(global_min)) * 255
     chm_normalized = chm_normalized.astype(np.uint8)
-
+    
     if method == "replace_blue":
-        rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
-        rgb[:,:,2] = chm_normalized
-        return rgb
+        rgb[:, :, 2] = chm_normalized  # Replace blue channel with CHM
     
     elif method == "intensity_modulation":
-        hsv = cv2.cvtColor(rgb, cv2.COLOR_BGR2HSV)
-        hsv[:, :, 2] = np.clip(hsv[:, :, 2] + chm_normalized * 0.5, 0, 255)
-        # hsv[:, :, 2] = np.clip((hsv[:, :, 2] * 0.5) + (chm_normalized * 0.5), 0, 255)
-        rgb_modulated = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-        return rgb_modulated
+        hsv_pil = Image.fromarray(rgb).convert("HSV")
+        hsv = np.array(hsv_pil)
+        
+        # Adjust value channel to include CHM data
+        hsv[:, :, 2] = np.clip((hsv[:, :, 2] * 0.5) + (chm_normalized * 0.5), 0, 255)
+        
+        # Convert back to RGB
+        rgb = Image.fromarray(hsv, mode="HSV").convert("RGB")
+        rgb = np.array(rgb)
 
 
+    if orientation_flag == 1:
+        # No-op, the image is already right side up
+        pass
+    elif orientation_flag == 3:
+        # 180 degrees
+        rgb = np.flip(rgb, (0, 1))
+    elif orientation_flag == 6:
+        # 90 degrees
+        rgb = np.flip(np.transpose(rgb, (1, 0)), 0)
+    elif orientation_flag == 8:
+        # 270 degrees
+        rgb = np.flip(np.transpose(rgb, (1, 0)), 1)
+    else:
+        raise ValueError(
+            "Flipped images are not implemented because they likely suggest an issue"
+        )
+
+    return rgb, output_exif
 
 with open(PATH_TO_MAPPING, "r") as file:
     data_dict = json.load(file)
@@ -99,10 +123,11 @@ print(f"Saving {len(chm_to_save_path)} images")
 for image, chm in tqdm(zip(all_data_image_paths, all_data_chm_paths), total=len(all_data_chm_paths), desc="Processing Images", unit="image"):
     if os.path.exists(chm):
         # Create and save image
-        merged = merge_rgb_chm(chm, image, global_min, global_max, MERGE_METHOD)
+        merged, output_exif = merge_rgb_chm(chm, image, global_min, global_max, MERGE_METHOD)
+        merged = Image.fromarray(merged)
         save_path = chm_to_save_path[chm]
         os.makedirs(os.path.dirname(save_path), exist_ok = True)
-        cv2.imwrite(save_path, cv2.cvtColor(merged, cv2.COLOR_RGB2BGR))
+        merged.save(save_path, exif=output_exif)
 
         # Save annotations
         label_path = save_path.replace(MERGED_DATA_SAVE_DIR+"image_subset/", "/ofo-share/scratch-david/NRS_labeling/labeled_images_12_17_merged_classes/")
