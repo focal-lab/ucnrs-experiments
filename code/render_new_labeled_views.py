@@ -10,7 +10,6 @@ from geograypher.utils.indexing import find_argmax_nonzero_value
 from geograypher.utils.geospatial import ensure_projected_CRS
 
 import geopandas as gpd
-import matplotlib.pyplot as plt
 
 
 IDS_TO_LABELS = {
@@ -24,6 +23,115 @@ IDS_TO_LABELS = {
     7: "W_water",
 }
 
+OUTPUT_FOLDER = (
+    "/ofo-share/repos-david/UCNRS-experiments/data/labels/geograypher_rendered_fixed"
+)
+PHOTOGRAMMETRY_FOLDER = (
+    "/ofo-share/repos-david/UCNRS-experiments/data/photogrammetry_products"
+)
+IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined"
+LABELS_FOLDER = (
+    "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes_standardized/"
+)
+
+CAMERA_BUFFER_DIST = 75
+MESH_BUFFER_DIST = 200
+
+DATASETS = (
+    "000479",
+    "000544",
+    "000545",
+    "000546",
+    "000547",
+    "000548",
+    "000549",
+    "000550",
+    "000551",
+    "000552",
+    "000553",
+    "000554",
+    "000555",
+    "000556",
+    "000557",
+    "000558",
+    "000559",
+    "000560",
+    "000561",
+    "000562",
+    "000563",
+    "000564",
+    "000565",
+    "000566",
+    "000567",
+    "000568",
+    "000569",
+    "000570",
+    "000571",
+    "000572",
+    "000573",
+    "000574",
+    "000575",
+    "000576",
+    "000577",
+    "000578",
+    "000579",
+    "000580",
+    "000581",
+    "000582",
+    "000583",
+    "000584",
+    "000585",
+    "000586",
+    "000587",
+    "000588",
+    "000610",
+    "000611",
+    "000612",
+    "000613",
+    "000614",
+    "000615",
+    "000616",
+    "000617",
+    "000618",
+    "000619",
+    "000620",
+    "000621",
+    "000622",
+    "000623",
+    "000624",
+    "000625",
+    "000626",
+    "000627",
+    "000628",
+    "000629",
+    "000630",
+    "000841",
+    "000908",
+    "000909",
+    "000910",
+    "000911",
+    "000912",
+    "000913",
+    "000914",
+    "000915",
+    "000916",
+    "000917",
+    "000918",
+    "000919",
+    "000920",
+    "000921",
+    "000922",
+    "000923",
+    "000924",
+    "000925",
+    "000926",
+    "000927",
+    "000928",
+    "000929",
+    "000930",
+    "000931",
+)
+
 
 def project_labels(
     cameras_file,
@@ -33,9 +141,11 @@ def project_labels(
     subset_saved_images_folder,
     renders_folder,
     ids_to_labels,
-    camera_buffer_dist=50,
-    mesh_buffer_dist=100,
+    camera_buffer_dist=CAMERA_BUFFER_DIST,
+    mesh_buffer_dist=MESH_BUFFER_DIST,
     render_downsample=0.2,
+    take_every_nth_image=1,
+    n_cameras_per_chunk=100,
 ):
     # Create the camera set
     cameras = MetashapeCameraSet(cameras_file, images_path, images_path)
@@ -80,7 +190,7 @@ def project_labels(
     )
 
     # Now create a second mesh for rendering out the texture for un-labeled perspectives
-    labeled_mesh = TexturedPhotogrammetryMesh(
+    labeled_mesh = TexturedPhotogrammetryMeshChunked(
         mesh_file,
         transform_filename=cameras_file,
         texture=projected_labels_class,
@@ -91,6 +201,11 @@ def project_labels(
 
     # Subset the cameras to the regions around the labeled cameras
     render_cameras = cameras.get_subset_ROI(ROI, buffer_radius=camera_buffer_dist)
+
+    render_cameras = render_cameras.get_subset_cameras(
+        range(0, len(render_cameras), take_every_nth_image)
+    )
+
     # Symlink a folder of images that correspond to the labels we will create
     render_cameras.save_images(subset_saved_images_folder)
 
@@ -99,109 +214,18 @@ def project_labels(
         screenshot_filename=Path(renders_folder, "render_mesh_vis.png"),
     )
 
+    n_chunks = int(np.ceil(len(render_cameras) / n_cameras_per_chunk))
+
     # Save out the labels
     labeled_mesh.save_renders(
         camera_set=render_cameras,
         output_folder=renders_folder,
         render_image_scale=render_downsample,
         save_native_resolution=True,
+        make_composites=False,
+        n_clusters=n_chunks,
     )
 
-
-DATASETS = (
-    # "000479",
-    # "000544",
-    # "000545",
-    # "000546",
-    # "000547",
-    # "000548",
-    # "000549",
-    # "000550",
-    # "000551",
-    # "000552",
-    # "000553",
-    # "000554",
-    # "000555",
-    # "000556",
-    # "000557",
-    # "000558",
-    # "000559",
-    # "000560",
-    # "000561",
-    # "000562",
-    # "000563",
-    # "000564",
-    # "000565",
-    # "000566",
-    # "000567",
-    # "000568",
-    # "000569",
-    # "000570",
-    # "000571",
-    # "000572",
-    # "000573",
-    # "000574",
-    # "000575",
-    # "000576",
-    # "000577",
-    # "000578",
-    # "000579",
-    # "000580",
-    # "000581",
-    # "000582",
-    # "000583",
-    # "000584",
-    # "000585",
-    # "000586",
-    # "000587",
-    # "000588",
-    # "000610",
-    # "000611",
-    # "000612",
-    # "000613",
-    # "000614",
-    # "000615",
-    # "000616",
-    # "000617",
-    # "000618",
-    # "000619",
-    # "000620",
-    # "000621",
-    # "000622",
-    # "000623",
-    # "000624",
-    # "000625",
-    # "000626",
-    # "000627",
-    # "000628",
-    # "000629",
-    # "000630",
-    # "000841",
-    # "000908",
-    # "000909",
-    # "000910",
-    # "000911",
-    # "000912",
-    # "000913",
-    # "000914",
-    # "000915",
-    # "000916",
-    # "000917",
-    # "000918",
-    # "000919",
-    "000920",
-    "000921",
-    "000922",
-    "000923",
-    "000924",
-    "000925",
-    "000926",
-    "000927",
-    "000928",
-    "000929",
-    "000930",
-    "000931",
-)
 
 for dataset in DATASETS:
 
@@ -212,28 +236,25 @@ for dataset in DATASETS:
     else:
         year = "2024"
 
-    images_path = f"/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined/{year}-ucnrs/{dataset}"
-    labels_folder = f"/ofo-share/repos-david/UCNRS-experiments/data/labels/labeled_images_12_17_merged_classes_standardized/{year}-ucnrs/{dataset}"
+    images_path = Path(IMAGES_FOLDER, f"{year}-ucnrs", f"{dataset}")
+    labels_folder = Path(LABELS_FOLDER, f"{year}-ucnrs", f"{dataset}")
 
     if not Path(labels_folder).is_dir():
         print(f"skipping {dataset} since there are no labels")
         continue
 
     mesh_file = Path(
-        "/ofo-share/repos-david/UCNRS-experiments/data/photogrammetry_products/mesh",
+        PHOTOGRAMMETRY_FOLDER,
+        "mesh",
         f"mesh-internal-{dataset[3:]}.ply",
     )
     cameras_file = Path(
-        "/ofo-share/repos-david/UCNRS-experiments/data/photogrammetry_products/cameras",
+        PHOTOGRAMMETRY_FOLDER,
+        "cameras",
         f"cameras-{dataset[3:]}.xml",
     )
-
-    subset_saved_images_folder = Path(
-        f"/ofo-share/repos-david/UCNRS-experiments/data/labels/geograypher_rendered_labels/{dataset}/images"
-    )
-    renders_folder = Path(
-        f"/ofo-share/repos-david/UCNRS-experiments/data/labels/geograypher_rendered_labels/{dataset}/renders"
-    )
+    subset_saved_images_folder = Path(OUTPUT_FOLDER, f"{dataset}/images")
+    renders_folder = Path(OUTPUT_FOLDER, f"{dataset}/renders")
 
     try:
         print(f"Trying dataset {dataset}")
@@ -245,6 +266,7 @@ for dataset in DATASETS:
             subset_saved_images_folder=subset_saved_images_folder,
             renders_folder=renders_folder,
             ids_to_labels=IDS_TO_LABELS,
+            take_every_nth_image=1,
         )
     except Exception as e:
         print(f"dataset {dataset} failed")
