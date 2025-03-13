@@ -73,6 +73,8 @@ def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
         # Convert back to RGB
         rgb = Image.fromarray(hsv, mode="HSV").convert("RGB")
         rgb = np.array(rgb)
+    else:
+        raise ValueError("Invalid method.")
 
 
     if orientation_flag == 1:
