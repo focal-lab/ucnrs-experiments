@@ -44,8 +44,6 @@ def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
 
     # 274 is the numeric value for the "Orientation" exif field.
     orientation_flag = rgb_pil.getexif()[274]
-    output_exif = Image.Exif()
-    output_exif[274] = orientation_flag
 
     rgb = np.array(rgb_pil)
     
@@ -94,7 +92,7 @@ def merge_rgb_chm(chm_path, rgb_path, global_min, global_max, method):
             "Flipped images are not implemented because they likely suggest an issue"
         )
 
-    return rgb, output_exif
+    return rgb
 
 with open(PATH_TO_MAPPING, "r") as file:
     data_dict = json.load(file)
@@ -123,11 +121,11 @@ print(f"Saving {len(chm_to_save_path)} images")
 for image, chm in tqdm(zip(all_data_image_paths, all_data_chm_paths), total=len(all_data_chm_paths), desc="Processing Images", unit="image"):
     if os.path.exists(chm):
         # Create and save image
-        merged, output_exif = merge_rgb_chm(chm, image, global_min, global_max, MERGE_METHOD)
+        merged = merge_rgb_chm(chm, image, global_min, global_max, MERGE_METHOD)
         merged = Image.fromarray(merged)
         save_path = chm_to_save_path[chm]
         os.makedirs(os.path.dirname(save_path), exist_ok = True)
-        merged.save(save_path, exif=output_exif)
+        merged.save(save_path)
 
         # Save annotations
         label_path = save_path.replace(MERGED_DATA_SAVE_DIR+"image_subset/", "/ofo-share/scratch-david/NRS_labeling/labeled_images_12_17_merged_classes/")
