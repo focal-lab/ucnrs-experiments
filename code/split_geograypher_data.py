@@ -67,13 +67,18 @@ num_val = int(num_total * VAL_FRAC)
 val_pairs = valid_pairs[:num_val]
 train_pairs = valid_pairs[num_val:]
 
+def create_symlink(src_path, dest_dir, suffix):
+    dest_name = f"{src_path.stem}{suffix}{src_path.suffix}"
+    dest_path = dest_dir / dest_name
+    os.symlink(src_path, dest_path)
+
 # Create symlinks for train and val sets
 for img_path, label_path in tqdm(train_pairs, desc="Linking train set"):
-    os.symlink(img_path, IMG_DIR / TRAIN_DIR / img_path.name)
-    os.symlink(label_path, ANN_DIR / TRAIN_DIR / label_path.name)
+    create_symlink(img_path, IMG_DIR / TRAIN_DIR, "_rgb")
+    create_symlink(label_path, ANN_DIR / TRAIN_DIR, "_segmentation")
 
 for img_path, label_path in tqdm(val_pairs, desc="Linking val set"):
-    os.symlink(img_path, IMG_DIR / VAL_DIR / img_path.name)
-    os.symlink(label_path, ANN_DIR / VAL_DIR / label_path.name)
+    create_symlink(img_path, IMG_DIR / VAL_DIR, "_rgb")
+    create_symlink(label_path, ANN_DIR / VAL_DIR, "_segmentation")
 
 print(f"Completed. Train: {len(train_pairs)}, Val: {len(val_pairs)}")
