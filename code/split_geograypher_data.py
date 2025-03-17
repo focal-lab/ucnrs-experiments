@@ -4,7 +4,7 @@ from pathlib import Path
 from tqdm import tqdm
 import shutil
 import random
-import cv2
+from imageio import imread
 
 BASE_DIR = Path("/ofo-share/repos-david/UCNRS-experiments/data/labels/geograypher_rendered_fixed")
 OUTPUT_DIR = Path("/ofo-share/scratch-amritha/NRS-data/geograypher_rendered/split_data")
@@ -55,8 +55,7 @@ random.shuffle(image_label_pairs)
 # Filter out null images
 valid_pairs = []
 for img_path, label_path in tqdm(image_label_pairs, desc="Filtering null images"):
-    label_img = cv2.imread(str(label_path), cv2.IMREAD_GRAYSCALE)
-    if np.any(label_img != 255):
+    if np.any(imread(label_path) != 255):
         valid_pairs.append((img_path, label_path))
 
 # Determine split size
