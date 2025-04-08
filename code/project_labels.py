@@ -25,16 +25,73 @@ ALL_LABELS_FOLDER = "/ofo-share/scratch-david/NRS-all-sites/preds_flipped"
 
 N_CAMERAS_PER_CHUNK = 100
 
-SKIP_EXISTING = False
+SKIP_EXISTING = True
 
 DATASET_IDS = [
-    479,
-    559,
+    544,
+    545,
+    546,
+    547,
+    548,
+    549,
+    551,
+    555,
+    557,
+    558,
+    563,
+    564,
+    565,
+    566,
+    567,
+    568,
+    570,
+    573,
+    574,
+    575,
+    576,
+    577,
+    578,
+    579,
+    580,
+    582,
+    583,
+    584,
+    585,
+    586,
+    587,
+    588,
+    1336,
+    1337,
+    610,
+    611,
+    612,
+    613,
+    614,
+    619,
+    620,
+    621,
+    622,
+    623,
+    627,
+    630,
     908,
     911,
     912,
     913,
+    919,
+    921,
+    924,
+    925,
+    926,
+    927,
+    928,
+    929,
+    930,
+    931,
+    559,
+    479,
 ]
+DATASET_IDS = [930, 580, 620, 630, 570, 557]
 
 
 def project_dataset(dataset_id, nrs_year, skip_existings=False):
@@ -45,8 +102,12 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
     labels_folder = Path(ALL_LABELS_FOLDER, f"ucnrs-{nrs_year}/{dataset_id}")
 
     # Path to input photogrammetry products
-    mesh_file = Path(DOWNLOADS_FOLDER, "mesh", f"mesh-internal-{dataset_id[3:]}.ply")
-    cameras_file = Path(DOWNLOADS_FOLDER, "cameras", f"cameras-{dataset_id[3:]}.xml")
+    mesh_file = Path(
+        DOWNLOADS_FOLDER, "mesh", f"mesh-internal-{dataset_id.lstrip('0')}.ply"
+    )
+    cameras_file = Path(
+        DOWNLOADS_FOLDER, "cameras", f"cameras-{dataset_id.lstrip('0')}.xml"
+    )
 
     # Output files for the per-face and geospaital results
     top_down_vector_projection_file = Path(
@@ -68,14 +129,14 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
         print(f"Dataset {dataset_id} exists already. Skipping")
         return
 
+    # Actually run the aggregation step
     try:
-        # Actually run the aggregation step
+        print(f"Running {dataset_id}")
         aggregate_images(
             mesh_file,
             cameras_file,
             images_folder,
             labels_folder,
-            # original_image_folder=images_folder,
             IDs_to_labels=IDS_TO_LABELS,
             aggregated_face_values_savefile=predicted_face_values_file,
             top_down_vector_projection_savefile=top_down_vector_projection_file,
@@ -93,12 +154,11 @@ processing_ids = pd.read_csv(PROCESSING_IDS_FILE)
 
 # Loop over datasets
 for dataset_id in DATASET_IDS:
-    row = processing_ids[processing_ids.dataset_id == dataset_id]
-    row = row.iloc[0, :]
-    dataset_id = f"{row.dataset_id:06}"
-    processed_id = row.processed_path
+    # row = processing_ids[processing_ids.dataset_id == dataset_id]
+    # row = row.iloc[0, :]
+    dataset_id = f"{dataset_id:06}"
 
-    if dataset_id <= "000580":
+    if dataset_id <= "000588" or dataset_id >= "001336":
         nrs_year = "2020"
     elif dataset_id <= "000630":
         nrs_year = "2023"
