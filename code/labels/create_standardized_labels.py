@@ -1,16 +1,17 @@
 from pathlib import Path
 import json
 import shutil
+import pprint
 
 MAPPING_FILE = Path(
     "/ofo-share/repos-david/UCNRS-experiments/data/subset_to_all_images_mapping.json"
 )
 
 LABELED_IMAGES_FOLDER = Path(
-    "/ofo-share/repos-david/UCNRS-experiments/data/labels/labeled_images_12_17_merged_classes"
+    "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes"
 )
 STANDARDIZED_LABELED_IMAGES_FOLDER = Path(
-    "/ofo-share/repos-david/UCNRS-experiments/data/labels/labeled_images_12_17_merged_classes_standardized"
+    "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes_standardized"
 )
 
 INITIAL_LOCATION = "/ofo-share/scratch-david/NRS_labeling/image_subset"
@@ -34,6 +35,7 @@ for file in files:
             value.replace(str(FULL_FOLDER), str(STANDARDIZED_LABELED_IMAGES_FOLDER))
         ).with_suffix(".png")
         value.parent.mkdir(parents=True, exist_ok=True)
+        #print(f"Copying {file} {value}")
         shutil.copy(file, value)
     else:
         print(f"Skipping {key}")

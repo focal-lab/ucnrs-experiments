@@ -91,7 +91,6 @@ DATASET_IDS = [
     559,
     479,
 ]
-DATASET_IDS = [930, 580, 620, 630, 570, 557]
 
 
 def project_dataset(dataset_id, nrs_year, skip_existings=False):
@@ -130,23 +129,22 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
         return
 
     # Actually run the aggregation step
-    try:
-        print(f"Running {dataset_id}")
-        aggregate_images(
-            mesh_file,
-            cameras_file,
-            images_folder,
-            labels_folder,
-            IDs_to_labels=IDS_TO_LABELS,
-            aggregated_face_values_savefile=predicted_face_values_file,
-            top_down_vector_projection_savefile=top_down_vector_projection_file,
-            mesh_downsample=0.2,
-            aggregate_image_scale=0.25,
-            take_every_nth_camera=1,
-            n_cameras_per_aggregation_cluster=N_CAMERAS_PER_CHUNK,
-        )
-    except Exception as e:
-        print(f"Dataset {dataset_id} failed with the following error {e}")
+    print(f"Running {dataset_id}")
+    aggregate_images(
+        mesh_file,
+        cameras_file,
+        images_folder,
+        labels_folder,
+        IDs_to_labels=IDS_TO_LABELS,
+        aggregated_face_values_savefile=predicted_face_values_file,
+        top_down_vector_projection_savefile=top_down_vector_projection_file,
+        mesh_downsample=0.2,
+        aggregate_image_scale=0.25,
+        take_every_nth_camera=1,
+        n_cameras_per_aggregation_cluster=N_CAMERAS_PER_CHUNK,
+    )
+    # except Exception as e:
+    #    print(f"Dataset {dataset_id} failed with the following error {e}")
 
 
 # Load the list of dataset IDs
