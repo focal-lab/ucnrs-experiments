@@ -1,13 +1,13 @@
 # %%
 import geopandas as gpd
 import json
-import matplotlib.pyplot as plt
-import pandas as pd
-import time
-from geograypher.utils.geospatial import (
-    ensure_non_overlapping_polygons,
-    ensure_projected_CRS,
-)
+import logging
+import geopandas as gpd
+import geofileops as gfo
+from pathlib import Path
+from shapely import union, Geometry, MultiPolygon, make_valid, difference
+import numpy as np
+import typing
 
 from pathlib import Path
 
@@ -34,9 +34,115 @@ VIS = False
 
 SKIP_EXISTING = True
 
+METADATA_FILE = "/ofo-share/drone-imagery-organization/3c_metadata-extracted/all-mission-polygons-w-metadata.gpkg"
+SCRATCH_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/scratch/geofileops")
+BOUNDARY = Path(SCRATCH_FOLDER, "boundary.gpkg")
+
+INPUT_DATA_GPKG = Path(SCRATCH_FOLDER, "input.gpkg")
+SIMPLIFIED_1 = Path(SCRATCH_FOLDER, "simplified_1.gpkg")
+SIMPLIFIED_2 = Path(SCRATCH_FOLDER, "simplified_2.gpkg")
+BUFFERED_1 = Path(SCRATCH_FOLDER, "buffered_1.gpkg")
+BUFFERED_2 = Path(SCRATCH_FOLDER, "buffered_2.gpkg")
+BUFFERED_3 = Path(SCRATCH_FOLDER, "buffered_3.gpkg")
+NONOVERLAPPING = Path(SCRATCH_FOLDER, "nonoverlapping.gpkg")
+CLIPPED = Path(SCRATCH_FOLDER, "clipped.gpkg")
+
 # Allows you to specify a subset of the data for testing
 START_IND = 0
 STOP_IND = 100
+
+
+def ensure_non_overlapping_polygons(
+    geometries: typing.Union[typing.List[Geometry], gpd.GeoDataFrame],
+    inplace: bool = False,
+):
+    # Make sure geometries is a list of shapely objects
+    if isinstance(geometries, gpd.GeoDataFrame):
+        original_gdf = geometries
+        geometries = geometries.geometry.tolist()
+    else:
+        original_gdf = None
+
+    output_geometries = [None] * len(geometries)
+    union_of_added_geoms = MultiPolygon()
+
+    areas = [geom.area for geom in geometries]
+    sorted_inds = np.argsort(areas)
+
+    for ind in sorted_inds:
+        print(f"Processing ind {ind}")
+        # Get the input geometry and ensure it's valid
+        geom = make_valid(geometries[ind])
+        # Subtract the union of all
+        geom_to_add = difference(geom, union_of_added_geoms)
+        output_geometries[ind] = geom_to_add
+        # Add the original geom, not the difference'd one, to avoid boundary artifacts
+        union_of_added_geoms = union(geom, union_of_added_geoms)
+
+    if original_gdf is None:
+        return output_geometries
+    elif inplace:
+        original_gdf.geometry = output_geometries
+    else:
+        output_gdf = original_gdf.copy()
+        output_gdf.geometry = output_geometries
+        return output_gdf
+
+
+def post_process_gfo(dataset_id, input_path, output_path, working_crs=3310):
+    metadata = gpd.read_file(METADATA_FILE)
+    metadata_for_mission = metadata.query("@dataset_id == mission_id")
+    metadata_for_mission.to_file(BOUNDARY)
+
+    logging.basicConfig(level=logging.INFO)
+    input_data = gpd.read_file(input_path)
+    input_data.to_crs(working_crs, inplace=True)
+    input_data.to_file(INPUT_DATA_GPKG)
+
+    gfo.simplify(
+        input_path=INPUT_DATA_GPKG,
+        output_path=SIMPLIFIED_1,
+        tolerance=SIMPLIFY_TOL,
+        force=True,
+    )
+    gfo.buffer(
+        input_path=SIMPLIFIED_1,
+        output_path=BUFFERED_1,
+        distance=-BUFFER_AMOUNT,
+        endcap_style=gfo.BufferEndCapStyle.FLAT,
+        join_style=gfo.BufferJoinStyle.MITRE,
+        force=True,
+    )
+    gfo.buffer(
+        input_path=BUFFERED_1,
+        output_path=BUFFERED_2,
+        distance=2 * BUFFER_AMOUNT,
+        endcap_style=gfo.BufferEndCapStyle.FLAT,
+        join_style=gfo.BufferJoinStyle.MITRE,
+        force=True,
+    )
+    gfo.buffer(
+        input_path=BUFFERED_2,
+        output_path=BUFFERED_3,
+        distance=-BUFFER_AMOUNT,
+        endcap_style=gfo.BufferEndCapStyle.FLAT,
+        join_style=gfo.BufferJoinStyle.MITRE,
+        force=True,
+    )
+    gfo.simplify(
+        input_path=BUFFERED_3,
+        output_path=SIMPLIFIED_2,
+        tolerance=SIMPLIFY_TOL,
+        force=True,
+    )
+
+    simplified = gpd.read_file(SIMPLIFIED_2)
+    nonoverlapping = ensure_non_overlapping_polygons(simplified)
+    nonoverlapping.to_crs(metadata_for_mission.crs, inplace=True)
+    nonoverlapping.to_file(NONOVERLAPPING)
+
+    gfo.clip(input_path=NONOVERLAPPING, clip_path=BOUNDARY, output_path=output_path)
+
 
 # %%
 # Load the metadata for all missions, which includes the flight polygons
@@ -54,87 +160,14 @@ for map_file in map_files:
         POST_PROCESSED_MAPS_FOLDER, map_file.relative_to(GEOSPATIAL_MAPS_FOLDER)
     )
     if SKIP_EXISTING and output_file.is_file():
-        print(f"{output_file} exists, skipping")
+        print(f"Skipping {dataset_id} because it exists already")
         continue
 
-    # get the associated metadata entry
-    metadata = metadata_for_missions.query("mission_id == @dataset_id")
-    if VIS:
-        metadata.plot()
-        plt.show()
+    print(f"Postprocessing {dataset_id}")
 
-    preds = gpd.read_file(map_file)
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    # Make sure this is in a projected CRS so geometric operations work as expected
-    preds = ensure_projected_CRS(preds)
-    # Simplify the geometry to make future operations faster
-    print("Simplifying ")
-    start = time.time()
-    preds.geometry = preds.simplify(SIMPLIFY_TOL)
-    print(f"Simplifying took {time.time() - start}")
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    print("Buffering in")
-    start = time.time()
-    preds.geometry = preds.buffer(-BUFFER_AMOUNT)
-    print(f"Buffering in took {time.time() - start}")
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    print("Buffering out")
-    start = time.time()
-    preds.geometry = preds.buffer(2 * BUFFER_AMOUNT)
-    print(f"Buffering out took {time.time() - start}")
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    print("Buffering in")
-    start = time.time()
-    preds.geometry = preds.buffer(-BUFFER_AMOUNT)
-    print(f"Buffering in took {time.time() - start}")
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    print("Simplifying again")
-    start = time.time()
-    preds.geometry = preds.simplify(SIMPLIFY_TOL)
-    print(f"Simplifying took {time.time() - start}")
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    # Favor the class with the smallest area
-    print("Ensuring non-overlapping polygons")
-    start = time.time()
-    preds = ensure_non_overlapping_polygons(preds)
-    print(f"Non-overlapping {time.time() - start}")
-    if VIS:
-        preds.plot("class_names", legend=True)
-        plt.show()
-
-    # Consider doing the thing to make classes non-overlapping by taking the rarest class
-
-    preds.to_crs(metadata.crs, inplace=True)
-
-    print("Clipping")
-    start = time.time()
-    preds = gpd.clip(gdf=preds, mask=metadata, keep_geom_type=True)
-    print(f"Clipping took {time.time() - start}")
-    if VIS:
-        preds.plot("class_names")
-        plt.show()
-
-    # Create containing directory and save file
-    output_file.parent.mkdir(exist_ok=True)
-    preds.to_file(output_file)
+    post_process_gfo(
+        dataset_id=dataset_id, input_path=map_file, output_path=output_file
+    )
 
 # %%
 # List all the files that are present
@@ -150,7 +183,7 @@ for map_file in map_files:
     original_crs = pred.crs
 
     # Convert to a projected CRS
-    pred = ensure_projected_CRS(pred)
+    pred.to_crs(crs=3310, inplace=True)
 
     # Get the shift
     name = map_file.stem
