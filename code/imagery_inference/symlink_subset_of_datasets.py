@@ -1,6 +1,6 @@
 from pathlib import Path
 # Where the data sorted by mission is stored
-INPUT_DIRECTORY = Path("/ofo-share/drone-imagery-organization/2_sorted")
+INPUT_DIRECTORY = Path("/ofo-share/ARCHIVED_drone-imagery-organization/2_sorted")
 # You can select where to create this directory
 OUTPUT_DIRECTORY = Path("/ofo-share/repos-david/UCNRS-experiments/data/dataset_images")
 

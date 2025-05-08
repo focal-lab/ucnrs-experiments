@@ -4,8 +4,8 @@ from mmseg_utils.dataset_creation.folder_to_cityscapes import folder_to_cityscap
 from pathlib import Path
 
 DOWNLOAD_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/labels/VIAME_download"
-OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes"
-CITYSCAPE_FORMATTED_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes_cityscapes_formatted"
+OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes_4_9_25_no_metadata"
+CITYSCAPE_FORMATTED_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/labels/merged_classes_cityscapes_formatted_4_9_25_no_metadata"
 
 CLASS_MAP = "/ofo-share/repos-david/UCNRS-experiments/data/labels/class_map_merged.json"
 
@@ -50,7 +50,7 @@ if True:
     folder_to_cityscapes(
         images_folder=DOWNLOAD_FOLDER,
         labels_folder=OUTPUT_FOLDER,
-        image_ext="JPG",
+        image_ext=("JPG", "jpg"),
         label_ext="png",
         train_frac=0.8,
         val_frac=0.2,
