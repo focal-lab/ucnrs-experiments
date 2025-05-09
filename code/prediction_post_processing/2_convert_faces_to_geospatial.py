@@ -1,10 +1,9 @@
 from pathlib import Path
-import pandas as pd
 import numpy as np
+import geopandas as gpd
 
 from geograypher.utils.indexing import find_argmax_nonzero_value
 from geograypher.meshes import TexturedPhotogrammetryMesh
-from geograypher.entrypoints.aggregate_images import aggregate_images
 
 
 IDS_TO_LABELS = {
@@ -18,109 +17,50 @@ IDS_TO_LABELS = {
     7: "W_water",
 }
 
-PROCESSING_IDS_FILE = "/ofo-share/repos-david/UCNRS-experiments/data/processed_ids.csv"
-ALL_IMAGES_FOLDER = "/ofo-share/drone-imagery-organization/3_sorted-notcleaned-combined"
-DOWNLOADS_FOLDER = (
-    "/ofo-share/repos-david/UCNRS-experiments/data/photogrammetry_products"
-)
-OUTPUT_FOLDER = "/ofo-share/repos-david/UCNRS-experiments/data/geograypher_outputs"
-ALL_LABELS_FOLDER = "/ofo-share/scratch-david/NRS-all-sites/preds_flipped"
+DATA_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/data")
+ALL_IMAGES_FOLDER = Path(DATA_FOLDER, "inputs", "images")
+PHOTOGRAMMETRY_FOLDER = Path(DATA_FOLDER, "inputs", "photogrammetry")
 
+METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
+PROJECTIONS_FOLDER = Path(
+    DATA_FOLDER,
+    "intermediate",
+    "projections_to_faces",
+)
+OUTPUT_FOLDER = Path(DATA_FOLDER, "intermediate", "geospatial_maps")
+
+CONFIDENCE_THRESHOLD = 0.8
 N_CAMERAS_PER_CHUNK = 100
 
 SKIP_EXISTING = False
 
-DATASET_IDS = [
-    544,
-    545,
-    546,
-    547,
-    548,
-    549,
-    551,
-    555,
-    #    557,
-    558,
-    563,
-    564,
-    565,
-    566,
-    567,
-    568,
-    570,
-    573,
-    574,
-    #    575,
-    576,
-    577,
-    578,
-    579,
-    580,
-    582,
-    583,
-    584,
-    585,
-    586,
-    587,
-    588,
-    1336,
-    1337,
-    610,
-    611,
-    612,
-    613,
-    614,
-    619,
-    620,
-    621,
-    622,
-    623,
-    627,
-    630,
-    908,
-    911,
-    912,
-    913,
-    919,
-    921,
-    924,
-    925,
-    926,
-    927,
-    928,
-    929,
-    930,
-    931,
-    559,
-    479,
-]
-DATASET_IDS = [576, 577, 578, 614, 913]
 
-
-def project_dataset(dataset_id, nrs_year, skip_existings=False):
+def project_dataset(dataset_id, skip_existings=False):
     # Path to input photogrammetry products
     mesh_file = Path(
-        DOWNLOADS_FOLDER, "mesh", f"mesh-internal-{dataset_id.lstrip('0')}.ply"
+        PHOTOGRAMMETRY_FOLDER, "mesh", f"mesh-internal-{dataset_id.lstrip('0')}.ply"
     )
     cameras_file = Path(
-        DOWNLOADS_FOLDER, "cameras", f"cameras-{dataset_id.lstrip('0')}.xml"
+        PHOTOGRAMMETRY_FOLDER, "cameras", f"cameras-{dataset_id.lstrip('0')}.xml"
     )
+    # Output files for the per-face result
+    predicted_face_values_file = Path(PROJECTIONS_FOLDER, f"{dataset_id}.npy")
+    top_down_vector_projection_file = Path(OUTPUT_FOLDER, f"{dataset_id}.geojson")
 
-    predicted_face_values_file = Path(OUTPUT_FOLDER, "face_values", f"{dataset_id}.npy")
-    top_down_vector_projection_file = Path(
-        OUTPUT_FOLDER, "geospatial_maps_high_conf", f"{dataset_id}.geojson"
-    )
-
-    if top_down_vector_projection_file.is_file():
+    if skip_existings and top_down_vector_projection_file.is_file():
         print(f"Skipping existing geospatial file {dataset_id}")
         return
 
+    # Load the projected face values
     face_values = np.load(predicted_face_values_file)
 
+    # Determine the max class
     max_class = find_argmax_nonzero_value(face_values, keepdims=False)
     max_value = np.max(face_values, axis=1)
-    max_class[max_value < 0.8] = np.nan
+    # Remove low confidence faces
+    max_class[max_value < CONFIDENCE_THRESHOLD] = np.nan
 
+    # Load a mesh
     mesh = TexturedPhotogrammetryMesh(
         mesh_file,
         transform_filename=cameras_file,
@@ -128,7 +68,7 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
         downsample_target=0.2,
         IDs_to_labels=IDS_TO_LABELS,
     )
-    # mesh.vis()
+    # Convert the faces to top down vector file
     mesh.export_face_labels_vector(
         face_labels=max_class,
         export_file=top_down_vector_projection_file,
@@ -138,23 +78,11 @@ def project_dataset(dataset_id, nrs_year, skip_existings=False):
 
 
 # Load the list of dataset IDs
-processing_ids = pd.read_csv(PROCESSING_IDS_FILE)
+metadata = gpd.read_file(METADATA_FILE)
 
 # Loop over datasets
-for dataset_id in DATASET_IDS:
-    # row = processing_ids[processing_ids.dataset_id == dataset_id]
-    # row = row.iloc[0, :]
-    dataset_id = f"{dataset_id:06}"
-
-    if dataset_id <= "000588" or dataset_id >= "001336":
-        nrs_year = "2020"
-    elif dataset_id <= "000630":
-        nrs_year = "2023"
-    else:
-        nrs_year = "2024"
-
+for dataset_id in metadata.mission_id.values:
     project_dataset(
         dataset_id=dataset_id,
-        nrs_year=nrs_year,
         skip_existings=SKIP_EXISTING,
     )
