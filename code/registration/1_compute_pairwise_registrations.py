@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import geopandas as gpd
@@ -7,13 +8,15 @@ from GDRT.raster.register_images import align_two_rasters
 from GDRT.raster.registration_algorithms import sitk_intensity_registration
 from scientific_python_utils.geospatial import ensure_projected_CRS
 
-DATA_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/data")
-METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
-CHMS_FOLDER = Path(DATA_FOLDER, "inputs", "CHMs")
-PAIRWISE_SHIFTS = Path(DATA_FOLDER, "intermediate", "pairwise_registration.gpkg")
-
-TARGET_GSD = 0.25
-MIN_OVERLAP_TO_REGISTER = 50 ^ 2
+# Add folder where constants.py is to system search path
+sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
+from constants import (
+    CHMS_FOLDER,
+    METADATA_FILE,
+    MIN_OVERLAP_TO_REGISTER,
+    PAIRWISE_SHIFTS_FILE,
+    TARGET_GSD,
+)
 
 
 def get_all_registrations(overlay_gdf):
@@ -27,7 +30,6 @@ def get_all_registrations(overlay_gdf):
 
         fixed_chm_filename = Path(CHMS_FOLDER, f"chm-mesh-{mission_1}.tif")
         moving_chm_filename = Path(CHMS_FOLDER, f"chm-mesh-{mission_2}.tif")
-
         print(f"Running {mission_1} and {mission_2} for year {year_1} and {year_2}")
         try:
             transforms = align_two_rasters(
@@ -87,4 +89,4 @@ all_overlays["xshift"] = all_shifts[:, 0]
 all_overlays["yshift"] = all_shifts[:, 1]
 
 # Write shifts to file along with overlapping region
-all_overlays.to_file(PAIRWISE_SHIFTS)
+all_overlays.to_file(PAIRWISE_SHIFTS_FILE)

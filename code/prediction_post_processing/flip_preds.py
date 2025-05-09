@@ -1,6 +1,7 @@
 from pathlib import Path
-from PIL import Image
+
 import numpy as np
+from PIL import Image
 
 INPUT_LABELS_FOLDER = Path("/ofo-share/scratch-david/NRS-all-sites/preds/")
 OUTPUT_LABELS_FOLDER = Path("/ofo-share/scratch-david/NRS-all-sites/preds_flipped")

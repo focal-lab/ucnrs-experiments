@@ -1,40 +1,30 @@
-import geopandas as gpd
 import json
 import logging
-import geopandas as gpd
-import geofileops as gfo
+import sys
 from pathlib import Path
-from shapely import union, Geometry, MultiPolygon, make_valid, difference
-import numpy as np
-import typing
+
+import geofileops as gfo
+import geopandas as gpd
 from spatial_utils.geofileops_wrappers import (
+    geofileops_buffer,
     geofileops_clip,
     geofileops_simplify,
-    geofileops_buffer,
 )
 from spatial_utils.geometric import ensure_non_overlapping_polygons
+from spatial_utils.geospatial import ensure_projected_CRS
 
-from pathlib import Path
-
-
-DATA_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/data")
-METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
-
-GEOSPATIAL_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "geospatial_maps")
-POST_PROCESSED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "post_processed_maps")
-SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "shifted_maps")
-
-SHIFTS_PER_DATASET = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json")
-
-# Simplify the geometry such that the maximum deviation never exceeds this amount
-SIMPLIFY_TOL = 0.1
-BUFFER_AMOUNT = 0.2
-VIS = False
-
-SKIP_EXISTING = True
-
-SCRATCH_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/scratch/geofileops")
-BOUNDARY = Path(SCRATCH_FOLDER, "boundary.gpkg")
+# Add folder where constants.py is to system search path
+sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
+from constants import (
+    BUFFER_AMOUNT,
+    METADATA_FILE,
+    POST_PROCESSED_MAPS_FOLDER,
+    PROJECTIONS_TO_GEOSPATIAL_FOLDER,
+    SHIFTED_MAPS_FOLDER,
+    SHIFTS_PER_DATASET,
+    SIMPLIFY_TOL,
+    SKIP_EXISTING,
+)
 
 
 def post_process_gfo(dataset_id, input_path, output_path, metadata):
@@ -70,14 +60,15 @@ def post_process_gfo(dataset_id, input_path, output_path, metadata):
 
 
 metadata_for_missions = gpd.read_file(METADATA_FILE)
-map_files = sorted(GEOSPATIAL_MAPS_FOLDER.glob("*"))
+map_files = sorted(PROJECTIONS_TO_GEOSPATIAL_FOLDER.glob("*"))
 
 POST_PROCESSED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
 for map_file in map_files:
     dataset_id = map_file.stem
 
     output_file = Path(
-        POST_PROCESSED_MAPS_FOLDER, map_file.relative_to(GEOSPATIAL_MAPS_FOLDER)
+        POST_PROCESSED_MAPS_FOLDER,
+        map_file.relative_to(PROJECTIONS_TO_GEOSPATIAL_FOLDER),
     )
     if SKIP_EXISTING and output_file.is_file():
         print(f"Skipping {dataset_id} because it exists already")
@@ -104,8 +95,8 @@ for map_file in map_files:
     # Record the original CRS
     original_crs = pred.crs
 
-    # Convert to a projected CRS
-    pred.to_crs(crs=3310, inplace=True)
+    # Convert to a projected CRS. The shift is assumed to be with respect to this projected CRS.
+    pred = ensure_projected_CRS(pred)
 
     # Get the shift
     name = map_file.stem

@@ -1,38 +1,22 @@
+import sys
 from pathlib import Path
-import numpy as np
+
 import geopandas as gpd
-
-from geograypher.utils.indexing import find_argmax_nonzero_value
+import numpy as np
 from geograypher.meshes import TexturedPhotogrammetryMesh
+from geograypher.utils.indexing import find_argmax_nonzero_value
 
-
-IDS_TO_LABELS = {
-    0: "BE_bare_earth",
-    1: "HL_herbaceous_live",
-    2: "MM_man_made_object",
-    3: "SD_shrub_dead",
-    4: "SL_shrub_live",
-    5: "TD_tree_dead",
-    6: "TL_tree_live",
-    7: "W_water",
-}
-
-DATA_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/data")
-ALL_IMAGES_FOLDER = Path(DATA_FOLDER, "inputs", "images")
-PHOTOGRAMMETRY_FOLDER = Path(DATA_FOLDER, "inputs", "photogrammetry")
-
-METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
-PROJECTIONS_FOLDER = Path(
-    DATA_FOLDER,
-    "intermediate",
-    "projections_to_faces",
+# Add folder where constants.py is to system search path
+sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
+from constants import (
+    CONFIDENCE_THRESHOLD,
+    IDS_TO_LABELS,
+    METADATA_FILE,
+    PHOTOGRAMMETRY_FOLDER,
+    PROJECTIONS_TO_FACES_FOLDER,
+    PROJECTIONS_TO_GEOSPATIAL_FOLDER,
+    SKIP_EXISTING,
 )
-OUTPUT_FOLDER = Path(DATA_FOLDER, "intermediate", "geospatial_maps")
-
-CONFIDENCE_THRESHOLD = 0.8
-N_CAMERAS_PER_CHUNK = 100
-
-SKIP_EXISTING = False
 
 
 def project_dataset(dataset_id, skip_existings=False):
@@ -44,8 +28,10 @@ def project_dataset(dataset_id, skip_existings=False):
         PHOTOGRAMMETRY_FOLDER, "cameras", f"cameras-{dataset_id.lstrip('0')}.xml"
     )
     # Output files for the per-face result
-    predicted_face_values_file = Path(PROJECTIONS_FOLDER, f"{dataset_id}.npy")
-    top_down_vector_projection_file = Path(OUTPUT_FOLDER, f"{dataset_id}.geojson")
+    predicted_face_values_file = Path(PROJECTIONS_TO_FACES_FOLDER, f"{dataset_id}.npy")
+    top_down_vector_projection_file = Path(
+        PROJECTIONS_TO_GEOSPATIAL_FOLDER, f"{dataset_id}.geojson"
+    )
 
     if skip_existings and top_down_vector_projection_file.is_file():
         print(f"Skipping existing geospatial file {dataset_id}")

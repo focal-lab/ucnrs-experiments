@@ -1,22 +1,22 @@
-from pathlib import Path
-import geopandas as gpd
 import sys
+from pathlib import Path
 
+import geopandas as gpd
 from geograypher.entrypoints.aggregate_images import aggregate_images
 
 # Add folder where constants.py is to system search path
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
 from constants import (
+    AGGREGATION_IMAGE_SCALE,
     ALL_IMAGES_FOLDER,
-    PER_IMAGE_PREDICTIONS_FOLDER,
-    PHOTOGRAMMETRY_FOLDER,
-    OUTPUT_FOLDER,
     IDS_TO_LABELS,
     MESH_DOWNSAMPLE,
     METADATA_FILE,
     N_CAMERAS_PER_CHUNK,
+    OUTPUT_FOLDER,
+    PER_IMAGE_PREDICTIONS_FOLDER,
+    PHOTOGRAMMETRY_FOLDER,
     SKIP_EXISTING,
-    AGGREGATION_IMAGE_SCALE,
 )
 
 

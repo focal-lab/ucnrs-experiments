@@ -16,14 +16,43 @@ AGGREGATION_IMAGE_SCALE = 0.25
 
 N_CAMERAS_PER_CHUNK = 100
 SKIP_EXISTING = True
+# geospatial export face confidence threshold
+CONFIDENCE_THRESHOLD = 0.8
+# Simplify the geometry such that the maximum deviation never exceeds this amount
+SIMPLIFY_TOL = 0.1
+BUFFER_AMOUNT = 0.2
+VIS = False
+TARGET_GSD = 0.25
+MIN_OVERLAP_TO_REGISTER = 50 ^ 2
+
+SKIP_EXISTING = True
+
+# Any pairwise shift greater than this value will be considered an outlier and removed
+MAX_PAIRWISE_SHIFT = 10
+# The weighting for each dataset to stay in the current location
+CURRENT_LOCATION_WEIGHT = 0.01
 
 # This can be replaced with an alternative absolute path if your data is in a different location
 DATA_FOLDER = Path(Path(__file__).parent, "..", "data").resolve()
 
+
+## inputs
+METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
 ALL_IMAGES_FOLDER = Path(DATA_FOLDER, "inputs", "images")
 PHOTOGRAMMETRY_FOLDER = Path(DATA_FOLDER, "inputs", "photogrammetry")
+CHMS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "CHMs")
+
+## intermediate
 PER_IMAGE_PREDICTIONS_FOLDER = Path(
     DATA_FOLDER, "intermediate", "per_image_predictions"
 )
-METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
-OUTPUT_FOLDER = Path(DATA_FOLDER, "intermediate", "projections_to_faces")
+PROJECTIONS_TO_FACES_FOLDER = Path(DATA_FOLDER, "intermediate", "projections_to_faces")
+PROJECTIONS_TO_GEOSPATIAL_FOLDER = Path(
+    DATA_FOLDER, "intermediate", "projections_to_geospatial"
+)
+SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "shifted_maps")
+SHIFTS_PER_DATASET = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json")
+POST_PROCESSED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "post_processed_maps")
+SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "shifted_maps")
+PAIRWISE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "pairwise_registration.gpkg")
+ABSOLUTE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json")
