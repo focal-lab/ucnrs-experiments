@@ -1,34 +1,23 @@
 from pathlib import Path
 import geopandas as gpd
-
+import sys
 
 from geograypher.entrypoints.aggregate_images import aggregate_images
 
-
-IDS_TO_LABELS = {
-    0: "BE_bare_earth",
-    1: "HL_herbaceous_live",
-    2: "MM_man_made_object",
-    3: "SD_shrub_dead",
-    4: "SL_shrub_live",
-    5: "TD_tree_dead",
-    6: "TL_tree_live",
-    7: "W_water",
-}
-MESH_DOWNSAMPLE = 0.2
-AGGREGATION_IMAGE_SCALE = 0.25
-
-DATA_FOLDER = Path("/ofo-share/repos-david/UCNRS-experiments/data")
-ALL_IMAGES_FOLDER = Path(DATA_FOLDER, "inputs", "images")
-PHOTOGRAMMETRY_FOLDER = Path(DATA_FOLDER, "inputs", "photogrammetry")
-PER_IMAGE_PREDICTIONS_FOLDER = Path(
-    DATA_FOLDER, "intermediate", "per_image_predictions"
+# Add folder where constants.py is to system search path
+sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
+from constants import (
+    ALL_IMAGES_FOLDER,
+    PER_IMAGE_PREDICTIONS_FOLDER,
+    PHOTOGRAMMETRY_FOLDER,
+    OUTPUT_FOLDER,
+    IDS_TO_LABELS,
+    MESH_DOWNSAMPLE,
+    METADATA_FILE,
+    N_CAMERAS_PER_CHUNK,
+    SKIP_EXISTING,
+    AGGREGATION_IMAGE_SCALE,
 )
-METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
-OUTPUT_FOLDER = Path(DATA_FOLDER, "intermediate", "projections_to_faces")
-
-N_CAMERAS_PER_CHUNK = 100
-SKIP_EXISTING = True
 
 
 def project_dataset(dataset_id, skip_existings=False):
