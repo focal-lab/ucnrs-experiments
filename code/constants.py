@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 IDS_TO_LABELS = {
     0: "BE_bare_earth",
     1: "HL_herbaceous_live",
@@ -41,6 +40,9 @@ METADATA_FILE = Path(DATA_FOLDER, "inputs", "mission_metadata.gpkg")
 ALL_IMAGES_FOLDER = Path(DATA_FOLDER, "inputs", "images")
 PHOTOGRAMMETRY_FOLDER = Path(DATA_FOLDER, "inputs", "photogrammetry")
 CHMS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "CHMs")
+CAMERAS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "cameras")
+MESHES_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "meshes")
+ORTHOS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "orthos")
 
 ## intermediate
 PER_IMAGE_PREDICTIONS_FOLDER = Path(
@@ -50,9 +52,11 @@ PROJECTIONS_TO_FACES_FOLDER = Path(DATA_FOLDER, "intermediate", "projections_to_
 PROJECTIONS_TO_GEOSPATIAL_FOLDER = Path(
     DATA_FOLDER, "intermediate", "projections_to_geospatial"
 )
-SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "shifted_maps")
 SHIFTS_PER_DATASET = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json")
 POST_PROCESSED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "post_processed_maps")
 SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "intermediate", "shifted_maps")
 PAIRWISE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "pairwise_registration.gpkg")
 ABSOLUTE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json")
+
+## outputs
+SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_maps")

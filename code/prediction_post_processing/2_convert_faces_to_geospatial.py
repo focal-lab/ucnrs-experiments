@@ -9,10 +9,12 @@ from geograypher.utils.indexing import find_argmax_nonzero_value
 # Add folder where constants.py is to system search path
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
 from constants import (
+    CAMERAS_FOLDER,
     CONFIDENCE_THRESHOLD,
     IDS_TO_LABELS,
+    MESH_DOWNSAMPLE,
+    MESHES_FOLDER,
     METADATA_FILE,
-    PHOTOGRAMMETRY_FOLDER,
     PROJECTIONS_TO_FACES_FOLDER,
     PROJECTIONS_TO_GEOSPATIAL_FOLDER,
     SKIP_EXISTING,
@@ -21,12 +23,8 @@ from constants import (
 
 def project_dataset(dataset_id, skip_existings=False):
     # Path to input photogrammetry products
-    mesh_file = Path(
-        PHOTOGRAMMETRY_FOLDER, "mesh", f"mesh-internal-{dataset_id.lstrip('0')}.ply"
-    )
-    cameras_file = Path(
-        PHOTOGRAMMETRY_FOLDER, "cameras", f"cameras-{dataset_id.lstrip('0')}.xml"
-    )
+    mesh_file = Path(MESHES_FOLDER, f"{dataset_id}.ply")
+    cameras_file = Path(CAMERAS_FOLDER, f"{dataset_id}.xml")
     # Output files for the per-face result
     predicted_face_values_file = Path(PROJECTIONS_TO_FACES_FOLDER, f"{dataset_id}.npy")
     top_down_vector_projection_file = Path(
@@ -51,7 +49,7 @@ def project_dataset(dataset_id, skip_existings=False):
         mesh_file,
         transform_filename=cameras_file,
         texture=max_class,
-        downsample_target=0.2,
+        downsample_target=MESH_DOWNSAMPLE,
         IDs_to_labels=IDS_TO_LABELS,
     )
     # Convert the faces to top down vector file

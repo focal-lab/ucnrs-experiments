@@ -90,6 +90,8 @@ with open(SHIFTS_PER_DATASET, "r") as infile:
 
 SHIFTED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
 for map_file in map_files:
+    print(f"shifting {map_file}")
+
     # Read the file
     pred = gpd.read_file(map_file)
     # Record the original CRS

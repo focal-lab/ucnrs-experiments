@@ -9,13 +9,15 @@ sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
 from constants import (
     AGGREGATION_IMAGE_SCALE,
     ALL_IMAGES_FOLDER,
+    CAMERAS_FOLDER,
     IDS_TO_LABELS,
     MESH_DOWNSAMPLE,
+    MESHES_FOLDER,
     METADATA_FILE,
     N_CAMERAS_PER_CHUNK,
-    OUTPUT_FOLDER,
     PER_IMAGE_PREDICTIONS_FOLDER,
     PHOTOGRAMMETRY_FOLDER,
+    PROJECTIONS_TO_FACES_FOLDER,
     SKIP_EXISTING,
 )
 
@@ -28,14 +30,10 @@ def project_dataset(dataset_id, skip_existings=False):
     labels_folder = Path(PER_IMAGE_PREDICTIONS_FOLDER, dataset_id)
 
     # Path to input photogrammetry products
-    mesh_file = Path(
-        PHOTOGRAMMETRY_FOLDER, "mesh", f"mesh-internal-{dataset_id.lstrip('0')}.ply"
-    )
-    cameras_file = Path(
-        PHOTOGRAMMETRY_FOLDER, "cameras", f"cameras-{dataset_id.lstrip('0')}.xml"
-    )
+    mesh_file = Path(MESHES_FOLDER, f"{dataset_id}.ply")
+    cameras_file = Path(CAMERAS_FOLDER, f"{dataset_id}.xml")
     # Output files for the per-face result
-    predicted_face_values_file = Path(OUTPUT_FOLDER, f"{dataset_id}.npy")
+    predicted_face_values_file = Path(PROJECTIONS_TO_FACES_FOLDER, f"{dataset_id}.npy")
 
     # Check if labels are present
     if not Path(labels_folder).is_dir():
