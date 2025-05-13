@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script is used to run inference using MMsegmentation.
 # Prior to running this script, run train_model.sh to generate the checkpoint and config file.
-# Usage: ./run_inference.sh <config_path> <checkpoint_path> <image_folder> <output_folder>
+# Usage: ./run_inference.sh <config_path> <checkpoint_path> <image_folder> <output_folder> <batch_size>
 
 set -e
 
