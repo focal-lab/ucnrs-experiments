@@ -12,7 +12,7 @@ OUTPUT_FOLDER="$4"
 
 # Configuration variables
 CONDA_ENV_NAME="openmmlab"
-MMSEG_DIR="/path/to/mmsegmentation"  # Path to your local clone of https://github.com/open-forest-observatory/mmsegmentation.git
+MMSEG_DIR="/ofo-share/repos-amritha/mmsegmentation"  # Path to your local clone of https://github.com/open-forest-observatory/mmsegmentation.git
 
 # Activate conda environment. Ensure conda is added to PATH.
 echo "Activating conda environment: $CONDA_ENV_NAME"
@@ -23,8 +23,8 @@ conda activate "$CONDA_ENV_NAME"
 echo "Running inference..."
 cd "$MMSEG_DIR/tools"
 python inference.py \
-    --config_path "$CONFIG_PATH" \
-    --checkpoint_path "$CHECKPOINT_PATH" \
-    --image_folder "$IMAGE_FOLDER" \
-    --output_folder "$OUTPUT_FOLDER"
+    "$CONFIG_PATH" \
+    "$CHECKPOINT_PATH" \
+    "$IMAGE_FOLDER" \
+    "$OUTPUT_FOLDER"
 echo "Inference complete. Results saved in: $OUTPUT_FOLDER"
