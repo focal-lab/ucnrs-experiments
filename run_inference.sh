@@ -21,7 +21,7 @@ conda activate "$CONDA_ENV_NAME"
 
 # Inference
 echo "Running inference..."
-cd "$MMSEG_DIR"
+cd "$MMSEG_DIR/tools"
 python inference.py \
     --config_path "$CONFIG_PATH" \
     --checkpoint_path "$CHECKPOINT_PATH" \
