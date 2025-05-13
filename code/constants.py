@@ -60,3 +60,4 @@ ABSOLUTE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json
 
 ## outputs
 SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_maps")
+SHIFTED_ORTHOS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_orthos")
