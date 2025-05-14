@@ -26,9 +26,11 @@ from constants import (
     SKIP_EXISTING,
 )
 
+RUN_POST_PROCESSING = True
+RUN_SHIFTS = True
+
 
 def post_process_gfo(dataset_id, input_path, output_path, metadata):
-
     logging.basicConfig(level=logging.INFO)
     input_data = gpd.read_file(input_path)
     simplified1 = geofileops_simplify(
@@ -48,74 +50,83 @@ def post_process_gfo(dataset_id, input_path, output_path, metadata):
     )
 
     nonoverlapping = ensure_non_overlapping_polygons(simplified2)
+    # The geofileops implementation of clip has errors if there are geometry collections
+    # Turn everything into polygons or multipolygons
+    nonoverlapping = nonoverlapping.explode()
+    nonoverlapping = nonoverlapping[nonoverlapping.geometry.type == "Polygon"]
+    nonoverlapping = nonoverlapping.dissolve(
+        by=["class_ID", "class_names"], as_index=False
+    )
 
     # TODO determine if it's cheaper to do this operation up front before simplifcation. The one
     # downside is the boundary might not be as precise. So it might be important to do it both
     # before and after.
     # Extract the metadata for this mission
     metadata_for_mission = metadata.query("@dataset_id == mission_id")
-    clipped = geofileops_clip(nonoverlapping, metadata_for_mission)
 
+    clipped = geofileops_clip(nonoverlapping, metadata_for_mission)
     clipped.to_file(output_path)
 
 
-metadata_for_missions = gpd.read_file(METADATA_FILE)
-map_files = sorted(PROJECTIONS_TO_GEOSPATIAL_FOLDER.glob("*"))
+if RUN_POST_PROCESSING:
+    metadata_for_missions = gpd.read_file(METADATA_FILE)
+    map_files = sorted(PROJECTIONS_TO_GEOSPATIAL_FOLDER.glob("*"))
 
-POST_PROCESSED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
-for map_file in map_files:
-    dataset_id = map_file.stem
+    POST_PROCESSED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
+    for map_file in map_files:
+        dataset_id = map_file.stem
 
-    output_file = Path(
-        POST_PROCESSED_MAPS_FOLDER,
-        map_file.relative_to(PROJECTIONS_TO_GEOSPATIAL_FOLDER),
-    )
-    if SKIP_EXISTING and output_file.is_file():
-        print(f"Skipping {dataset_id} because it exists already")
-        continue
+        output_file = Path(
+            POST_PROCESSED_MAPS_FOLDER,
+            map_file.relative_to(PROJECTIONS_TO_GEOSPATIAL_FOLDER),
+        )
+        if SKIP_EXISTING and output_file.is_file():
+            print(f"Skipping {dataset_id} because it exists already")
+            continue
 
-    print(f"Postprocessing {dataset_id}")
+        print(f"Postprocessing {dataset_id}")
 
-    post_process_gfo(
-        dataset_id=dataset_id,
-        input_path=map_file,
-        output_path=output_file,
-        metadata=metadata_for_missions,
-    )
+        post_process_gfo(
+            dataset_id=dataset_id,
+            input_path=map_file,
+            output_path=output_file,
+            metadata=metadata_for_missions,
+        )
 
-map_files = sorted(POST_PROCESSED_MAPS_FOLDER.glob("*"))
 
-with open(SHIFTS_PER_DATASET, "r") as infile:
-    shifts_per_dataset = json.load(infile)
+if RUN_SHIFTS:
+    map_files = sorted(POST_PROCESSED_MAPS_FOLDER.glob("*"))
 
-SHIFTED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
-for map_file in map_files:
-    print(f"shifting {map_file}")
+    with open(SHIFTS_PER_DATASET, "r") as infile:
+        shifts_per_dataset = json.load(infile)
+        SHIFTED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
+    for map_file in map_files:
+        print(f"shifting {map_file}")
 
-    # Read the file
-    pred = gpd.read_file(map_file)
-    # Record the original CRS
-    original_crs = pred.crs
+        # Read the file
+        pred = gpd.read_file(map_file)
+        # Record the original CRS
+        original_crs = pred.crs
+        print(pred)
+        # Convert to a projected CRS. The shift is assumed to be with respect to this projected CRS.
+        pred = ensure_projected_CRS(pred)
 
-    # Convert to a projected CRS. The shift is assumed to be with respect to this projected CRS.
-    pred = ensure_projected_CRS(pred)
+        # Get the shift
+        name = map_file.stem
+        if name in shifts_per_dataset:
+            shift = shifts_per_dataset[name]
+        else:
+            shift = (0, 0)
 
-    # Get the shift
-    name = map_file.stem
-    if name in shifts_per_dataset:
-        shift = shifts_per_dataset[name]
-    else:
-        shift = (0, 0)
+        # Apply the shift
+        pred.geometry = pred.translate(xoff=shift[0], yoff=shift[1])
 
-    # Apply the shift
-    pred.geometry = pred.translate(xoff=shift[0], yoff=shift[1])
+        # Convert back to the original CRS
+        pred.to_crs(original_crs, inplace=True)
 
-    # Convert back to the original CRS
-    pred.to_crs(original_crs, inplace=True)
-
-    output_file = Path(
-        SHIFTED_MAPS_FOLDER, map_file.relative_to(POST_PROCESSED_MAPS_FOLDER)
-    )
-    # Create the output folder and save
-    output_file.parent.mkdir(parents=True, exist_ok=True)
-    pred.to_file(output_file)
+        output_file = Path(
+            SHIFTED_MAPS_FOLDER, map_file.relative_to(POST_PROCESSED_MAPS_FOLDER)
+        )
+        # Create the output folder and save
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        pred.to_file(output_file)
