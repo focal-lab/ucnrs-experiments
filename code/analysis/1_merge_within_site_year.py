@@ -1,22 +1,26 @@
-import sys
 import logging
+import sys
 from pathlib import Path
 
 import geopandas as gpd
-import matplotlib.pyplot as plt
-from shapely import box
 import pandas as pd
-
+from shapely import box
+from spatial_utils.geofileops_wrappers import geofileops_clip, geofileops_dissolve
 from spatial_utils.geometric import merge_classified_polygons_by_voting
 from spatial_utils.geospatial import ensure_projected_CRS
-from spatial_utils.geofileops_wrappers import geofileops_clip, geofileops_dissolve
 
 # Add folder where constants.py is to system search path
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
-from constants import METADATA_FILE, SHIFTED_MAPS_FOLDER, CLASS_NAMES
+from constants import (
+    CLASS_NAMES,
+    MERGED_MAPS_FOLDER,
+    METADATA_FILE,
+    SHIFTED_MAPS_FOLDER,
+)
 
-# Quail, BORR, Hastings
-RESERVE = "BORR"
+# Which reserves to process, default is all
+RESERVES = ["BORR", "Quail", "Hastings"]
+
 ONLY_LEAF_ON = True
 ENSURE_NONOVERLAPPING = True
 
@@ -26,7 +30,6 @@ LEAF_ON_END_DATE = 1100
 
 logging.basicConfig(level=logging.WARNING)
 
-# %%
 # The generous bounds of the reserves
 RESERVE_BOUNDS = gpd.GeoDataFrame(
     {
@@ -42,25 +45,10 @@ RESERVE_BOUNDS = gpd.GeoDataFrame(
 RESERVE_BOUNDS = ensure_projected_CRS(RESERVE_BOUNDS)
 
 
-# %%
-def plot_map(gdf, title=None):
-    """Show the map, ensuring that colors are consistent across plots"""
-    ax = gdf.plot(
-        "class_names",
-        cmap="tab10",
-        vmin=-0.5,
-        vmax=9.5,
-        legend=True,
-        categorical=False,
-        categories=CLASS_NAMES,
-    )
-    if title is not None:
-        ax.set_title(title)
-
-
-def compute_standardized(
+def compute_merged(
     preds: gpd.GeoDataFrame,
     shared_region: gpd.GeoDataFrame,
+    output_file: Path,
     ensure_nonoverlapping: bool = False,
 ):
     """
@@ -102,7 +90,9 @@ def compute_standardized(
 
     subset["area_fraction"] = subset.area / total_area
 
-    return subset
+    # Write out the file
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    subset.to_file(output_file)
 
 
 # Find all predicted maps in the folder
@@ -150,50 +140,57 @@ if ONLY_LEAF_ON:
 # Add the information about which reserve it corresponds to
 all_preds = gpd.sjoin(all_preds, RESERVE_BOUNDS, how="left", predicate="intersects")
 
-# Select data from only one reserve
-reserve_preds = all_preds[all_preds["reserve"] == RESERVE]
-# Add useful attributes
-reserve_preds["year"] = reserve_preds["earliest_datetime_local_derived"].dt.year
-reserve_preds["is_2020"] = reserve_preds["year"] == 2020
+for reserve in RESERVES:
+    # Select data from only the reserve in question
+    reserve_preds = all_preds[all_preds["reserve"] == reserve]
+    # Add useful attributes
+    reserve_preds["year"] = reserve_preds["earliest_datetime_local_derived"].dt.year
+    reserve_preds["is_2020"] = reserve_preds["year"] == 2020
 
-# Get the bounds of the predictions for each year
-per_year_bounds = reserve_preds.dissolve(by="year", as_index=False)
+    # Get the bounds of the predictions for each year
+    per_year_bounds = reserve_preds.dissolve(by="year", as_index=False)
 
-# Find the areas that are present in all years for which any data is available
-shared_region_all_years = gpd.GeoDataFrame(
-    geometry=[per_year_bounds.geometry.intersection_all()], crs=per_year_bounds.crs
-)
-# Perform the same operation, but first merge 2023 and 2024
-shared_region_2020_vs_23_24 = gpd.GeoDataFrame(
-    geometry=[per_year_bounds.dissolve("is_2020").geometry.intersection_all()],
-    crs=per_year_bounds.crs,
-)
+    # Find the areas that are present in all years for which any data is available
+    shared_region_separate_years = gpd.GeoDataFrame(
+        geometry=[per_year_bounds.geometry.intersection_all()], crs=per_year_bounds.crs
+    )
+    # Perform the same operation, but first merge 2023 and 2024
+    shared_region_merged_years = gpd.GeoDataFrame(
+        geometry=[per_year_bounds.dissolve("is_2020").geometry.intersection_all()],
+        crs=per_year_bounds.crs,
+    )
 
-breakpoint()
-standardized_2020 = compute_standardized(
-    reserve_preds[reserve_preds.year == 2020],
-    shared_region_all_years,
-    ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-)
-standardized_2023 = compute_standardized(
-    reserve_preds[reserve_preds.year == 2023],
-    shared_region_all_years,
-    ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-)
-standardized_2024 = compute_standardized(
-    reserve_preds[reserve_preds.year == 2024],
-    shared_region_all_years,
-    ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-)
+    # Compute the merged versions, separated by individual years
+    compute_merged(
+        reserve_preds[reserve_preds.year == 2020],
+        shared_region_separate_years,
+        output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_separate_years.gpkg"),
+        ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+    )
+    compute_merged(
+        reserve_preds[reserve_preds.year == 2023],
+        shared_region_separate_years,
+        output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_separate_years.gpkg"),
+        ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+    )
+    compute_merged(
+        reserve_preds[reserve_preds.year == 2024],
+        shared_region_separate_years,
+        output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2024_separate_years.gpkg"),
+        ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+    )
 
-standardized_2020_merged = compute_standardized(
-    reserve_preds[reserve_preds.is_2020],
-    shared_region_2020_vs_23_24,
-    ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-)
+    # Compute merged for the predictions with 2023 and 2024 merged
+    compute_merged(
+        reserve_preds[reserve_preds.is_2020],
+        shared_region_merged_years,
+        output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg"),
+        ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+    )
 
-standardized_2023_2024_merged = compute_standardized(
-    reserve_preds[~reserve_preds.is_2020],
-    shared_region_2020_vs_23_24,
-    ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-)
+    compute_merged(
+        reserve_preds[~reserve_preds.is_2020],
+        shared_region_merged_years,
+        output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg"),
+        ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+    )
