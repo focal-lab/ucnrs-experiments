@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import ConfusionMatrixDisplay
 from itertools import product
 
 # Add folder where constants.py is to system search path
