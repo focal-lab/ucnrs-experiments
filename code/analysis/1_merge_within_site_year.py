@@ -166,38 +166,46 @@ if __name__ == "__main__":
         )
 
         # Compute the merged versions, separated by individual years
+        reserve_preds_2020 = reserve_preds[reserve_preds.year == 2020]
+        reserve_preds_2023 = reserve_preds[reserve_preds.year == 2023]
+        reserve_preds_2024 = reserve_preds[reserve_preds.year == 2024]
+
         compute_merged(
-            reserve_preds[reserve_preds.year == 2020],
+            reserve_preds_2020,
             shared_region_separate_years,
             output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_separate_years.gpkg"),
             ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
         )
         compute_merged(
-            reserve_preds[reserve_preds.year == 2023],
+            reserve_preds_2023,
             shared_region_separate_years,
             output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_separate_years.gpkg"),
             ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
         )
         compute_merged(
-            reserve_preds[reserve_preds.year == 2024],
+            reserve_preds_2024,
             shared_region_separate_years,
             output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2024_separate_years.gpkg"),
             ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
         )
 
-        # Compute merged for the predictions with 2023 and 2024 merged
-        compute_merged(
-            reserve_preds[reserve_preds.is_2020],
-            shared_region_merged_years,
-            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg"),
-            ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-        )
+        # Only compute the merged versions if it will be different than the separate ones because
+        # there is data for both '23 and '24
+        if len(reserve_preds_2023) > 0 and len(reserve_preds_2024) > 0:
+            compute_merged(
+                reserve_preds[reserve_preds.is_2020],
+                shared_region_merged_years,
+                output_file=Path(
+                    MERGED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg"
+                ),
+                ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+            )
 
-        compute_merged(
-            reserve_preds[~reserve_preds.is_2020],
-            shared_region_merged_years,
-            output_file=Path(
-                MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg"
-            ),
-            ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-        )
+            compute_merged(
+                reserve_preds[~reserve_preds.is_2020],
+                shared_region_merged_years,
+                output_file=Path(
+                    MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg"
+                ),
+                ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
+            )
