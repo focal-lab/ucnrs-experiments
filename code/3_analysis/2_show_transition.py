@@ -6,6 +6,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from spatial_utils.geofileops_wrappers import geofileops_overlay
 
 # Add folder where constants.py is to system search path
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
@@ -103,11 +104,18 @@ def compute_transition_matrix(
         return
 
     # Expensive operation
-    overlay = first_class_df.overlay(second_class_df)
+    overlay = geofileops_overlay(first_class_df, second_class_df)
+    union_area = overlay.area.sum()
+    # Drop any rows that don't have data from both years
+    overlay.dropna(inplace=True)
+    intersection_area = overlay.area.sum()
+    print(
+        f"Dropped {100*(union_area - intersection_area)/union_area:.4f}% of unioned area due to imperfect alignment between the two regions"
+    )
 
     # Get the classes for the left and right dataframes
-    i_inds = overlay["class_ID_1"].to_numpy().astype(int)
-    j_inds = overlay["class_ID_2"].to_numpy().astype(int)
+    i_inds = overlay["l1_class_ID"].to_numpy().astype(int)
+    j_inds = overlay["l2_class_ID"].to_numpy().astype(int)
     # Get the areas of the overlaps
     values = overlay.area.to_numpy()
 
@@ -198,6 +206,7 @@ for reserve in RESERVES:
     separate_table_vis = pd.DataFrame(
         data=separate_table, columns=["2020", "2023", "2024"], index=CLASS_NAMES
     )
+    print(f"Class fractions for {reserve}, separated by years")
     print(separate_table_vis)
 
     # Compute and save the year-to-year transition matrices
@@ -247,6 +256,7 @@ for reserve in RESERVES:
     merged_table_vis = pd.DataFrame(
         data=merged_table, columns=["2020", "2023+2024"], index=CLASS_NAMES
     )
+    print(f"Class fractions for {reserve}, with 2023 and 2024 merged")
     print(merged_table_vis)
 
     # Compute transition matrix
