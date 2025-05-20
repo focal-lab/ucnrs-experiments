@@ -17,6 +17,7 @@ from constants import (
     CLASS_ABBREVIATIONS,
 )
 
+# The reserves to run this on, defaults to all
 RESERVES = ["Quail", "BORR", "Hastings"]
 
 
@@ -97,9 +98,11 @@ def plot_transition(
 def compute_transition_matrix(
     first_class_df, second_class_df, reserve, first_year=None, second_year=None
 ):
+    # Transitions can't be shown if data doesn't exist for both years
     if first_class_df is None or second_class_df is None:
         return
 
+    # Expensive operation
     overlay = first_class_df.overlay(second_class_df)
 
     # Get the classes for the left and right dataframes
@@ -152,16 +155,20 @@ def compute_transition_matrix(
 
 
 def read_if_present(input_file):
+    """Try to read a geopandas file, return None if it does not exist"""
     try:
         return gpd.read_file(input_file)
     except:
         return None
 
 
+# Make output directories
 TRANSITION_MATRICES_FOLDER.mkdir(parents=True, exist_ok=True)
 TRANSITION_MATRIX_PLOTS_FOLDER.mkdir(parents=True, exist_ok=True)
 
+# Compute transition matrices for each reserve
 for reserve in RESERVES:
+    # Read the merged files for each year
     separate_2020 = read_if_present(
         Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_separate_years.gpkg")
     )
@@ -172,6 +179,7 @@ for reserve in RESERVES:
         Path(MERGED_MAPS_FOLDER, f"{reserve}_2024_separate_years.gpkg")
     )
 
+    # Populate a table of class fractions
     separate_table = np.zeros((8, 3))
     if separate_2020 is not None:
         separate_table[separate_2020["class_ID"].to_numpy(), 0] = separate_2020[
@@ -186,10 +194,13 @@ for reserve in RESERVES:
             "area_fraction"
         ]
 
-    final_table_vis = pd.DataFrame(
+    # Display the class fractions
+    separate_table_vis = pd.DataFrame(
         data=separate_table, columns=["2020", "2023", "2024"], index=CLASS_NAMES
     )
+    print(separate_table_vis)
 
+    # Compute and save the year-to-year transition matrices
     compute_transition_matrix(
         separate_2020,
         separate_2023,
@@ -213,6 +224,7 @@ for reserve in RESERVES:
     )
 
 for reserve in RESERVES:
+    # Read the files corresponding to the merged 2023+2024 data
     merged_2020 = read_if_present(
         Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg")
     )
@@ -220,6 +232,24 @@ for reserve in RESERVES:
         Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg")
     )
 
+    # Populate a table of class fractions for the merged data
+    merged_table = np.zeros((8, 2))
+    if merged_2020 is not None:
+        separate_table[merged_2020["class_ID"].to_numpy(), 0] = merged_2020[
+            "area_fraction"
+        ]
+    if merged_2023_2024 is not None:
+        separate_table[merged_2023_2024["class_ID"].to_numpy(), 1] = merged_2023_2024[
+            "area_fraction"
+        ]
+
+    # Display the class fractions
+    merged_table_vis = pd.DataFrame(
+        data=merged_table, columns=["2020", "2023+2024"], index=CLASS_NAMES
+    )
+    print(merged_table_vis)
+
+    # Compute transition matrix
     compute_transition_matrix(
         merged_2020,
         merged_2023_2024,

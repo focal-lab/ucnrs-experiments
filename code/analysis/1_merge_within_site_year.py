@@ -21,12 +21,16 @@ from constants import (
 # Which reserves to process, default is all
 RESERVES = ["BORR", "Quail", "Hastings"]
 
+# Should missions be retained only if they were collected during a time where leaves are expected
 ONLY_LEAF_ON = True
-ENSURE_NONOVERLAPPING = True
 
-# Start and end date as month and year (mmdd)
+# Start and end date as month and year (mmdd), only applicable if ONLY_LEAF_ON=True
 LEAF_ON_START_DATE = 415
 LEAF_ON_END_DATE = 1100
+
+# Should the per-class predictions be post processed such that there are never two class predictions
+# for the same region
+ENSURE_NONOVERLAPPING = True
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -134,12 +138,14 @@ if __name__ == "__main__":
             all_preds["earliest_datetime_local_derived"].dt.strftime("%m%d").astype(int)
         )
 
-        index = (int_month_day > LEAF_ON_START_DATE) & (
+        leaf_on_index = (int_month_day > LEAF_ON_START_DATE) & (
             int_month_day < LEAF_ON_END_DATE
         )
 
-        print(f"{len(index) - index.sum()} rows that were leaf off were dropped")
-        all_preds = all_preds[index]
+        print(
+            f"{len(leaf_on_index) - leaf_on_index.sum()} rows that were leaf off were dropped"
+        )
+        all_preds = all_preds[leaf_on_index]
 
     # Add the information about which reserve it corresponds to
     all_preds = gpd.sjoin(all_preds, RESERVE_BOUNDS, how="left", predicate="intersects")
