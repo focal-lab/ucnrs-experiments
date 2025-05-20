@@ -10,6 +10,9 @@ IDS_TO_LABELS = {
     6: "TL_tree_live",
     7: "W_water",
 }
+CLASS_NAMES = list(IDS_TO_LABELS.values())
+CLASS_ABBREVIATIONS = [x.split("_")[0] for x in CLASS_NAMES]
+
 MESH_DOWNSAMPLE = 0.2
 AGGREGATION_IMAGE_SCALE = 0.25
 
@@ -61,3 +64,8 @@ ABSOLUTE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json
 ## outputs
 SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_maps")
 SHIFTED_ORTHOS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_orthos")
+MERGED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "merged_maps")
+TRANSITION_MATRICES_FOLDER = Path(DATA_FOLDER, "outputs", "transition_matrices")
+TRANSITION_MATRIX_PLOTS_FOLDER = Path(
+    DATA_FOLDER, "outputs", "transition_matrices_plots"
+)
