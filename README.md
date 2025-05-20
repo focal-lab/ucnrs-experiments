@@ -1,31 +1,49 @@
-# UCNRS-experiments
+# Overview
+This repository contains the processing steps to replicate experiments on a vegetation mapping task using UAV imagery. This project was conducted at three sites within the University of California Natural Reserve System ([UCNRS](https://ucnrs.org/)). Imagery was collected during 60 UAV missions flown in 2020, 2023, and 2024. The objective was to study post-fire vegetation dynamics following fires that occured at all three reserves in 2020, prior to when any imagery was collected.
 
+# Install
+These experiments rely on functionality from several projects, many developed by the [Open Forest Observatory](https://openforestobservatory.org/). Because they have incompatible dependencies, you will need to create multiple separate conda environments for various steps. You will largely follow the instructions provided in the README file of each repository. However, if you want to ensure that the code you are using from these projects exactly matches what was used to conduct these experiments, conduct the following steps. First, clone the project locally from github. Then, from within the project, run `git checkout <tag name>` where the `<tag name>` refers to a named version of the code listed in each of the following sections. Also, there is a suggested name for the conda environment for each tool in the following sections.
 
-## Different functionality
-- `code/find_corresponding_image_for_subset.py` For finding which files in the labeled subset correspond to the full set of images.
-- `code/labels/create_standardized_labels.py` For linking the labels into a standardized structure matching the OFO images
-- `code/render_new_labeled_views.py` For rendering views from new perspectives of regions labeled from a single viewpoint.
-- `code/post_process_geospatial_maps.py` Perform simplifying operations on the polygons and then shift them spatially so all datasets are registered.
-- `code/cover_change.ipynb` Compute summaries of the year-to-year cover change for areas that have predictions across multiple years.
+## [MMSegmentation](https://github.com/open-forest-observatory/mmsegmentation/tree/main)
+This project is used for training and deploying state of the art semantic segementation models. Our fork has a small set of changes to the base repository. The tag is `v.xyz` and the conda environment should be called `mmseg`.
 
+## [Segmentation utils](https://github.com/open-forest-observatory/segmentation_utils)
+This project is used for managing practical challenges around preparing data to be used for semantic segmentation experiments. The tag is `v.xyz` and the conda environment should be called `segmentation-utils`.
 
-## Training data generation
-We have manually annotated image-level data using an open-source web tool called [VIAME](https://www.viametoolkit.org/). This tool does not provide exports in a standaridized format, so we have written a converter, `convert_annotations_new_download.py`. This is run to encode each image's annotation in the Cityscapes format. The `.py` config file produced by this script can be used to train a model using MMSegmentation (this [script]())
+## [Spatial utils](https://github.com/open-forest-observatory/spatial-utils)
+This project is a collection of geospatial operations that are somewhat general, but still more complex that what is provided by existing foundational libraries such as `geopandas` and `geofileops`. The tag is `v.xyz` and the conda environment should be called `spatial-utils`.
 
-## Model inference
-The first step in model inference is to create a folder containing a sub-folder for the images for each mission. If working on `/ofo-share`, this can be done using `code/imagery_inference/symlink_subset_of_datasets.py`. Then, use this [script](https://github.com/open-forest-observatory/mmsegmentation/blob/main/tools/inference.py) to produce a folder of predictions in a parellel structure to the input images. To do so you must active the appropriate conda environment for mmsegmentation. Then the format of the command will be
-```
-python inference.py --config_path <config path output by training step> \
-    --checkpoint_path <latest checkpoint output by training step> \
-    --image_folder <folder of symlinked images from last step> \
-    --output_folder <location to write the predictions>
-```
+## [Geograypher](https://github.com/open-forest-observatory/geograypher)
+This project is used for converting per-image predictions into geospatial maps. The tag is `v.xyz` and the conda environment should be called `geograypher`.
 
+## [Geospatial data registration toolkit](https://github.com/open-forest-observatory/geospatial-data-registration-toolkit)
+This project is used for spatially registring data products from multiple drone missions. The tag is `v.xyz` and the conda environment should be called `GDRT`.
 
-## Projection post processing
-This section begins by assuming you've generated predictions for each image.
- Due to some inconsistencies with how image orientation metadata is handled across different tools in our pipeline, we need to flip some of these predictions so they are consistent with the metadata-free interpretation of the image's orientation. This is done with the `flip_preds.py` script. This creates a new folder of predictions that is consistent with the orientation expected by `geograypher`.
+# Data
+All the data required to reproduce these experiments are provided, broken up into `inputs`, `intermediate`, and `outputs`. The data can be downloaded from this [box folder](https::/TODO/link).
 
-Then these per-image predictions can be projected to geospatial coordinates using `project_labels.py`. This creates two main outputs, the per-face aggregated predictions and the geospatial representation of the most common class per face. The geospatial representation has information from all faces that at least one image projected to. But some of these predictions may not be very confident. The `geospatialize_high_conf_mesh_faces.py` script allows the per-face data saved out by the previous script to be converted into geospatial information, but only for faces where all corresponding predictions have a high degree of agreement.
+# Processing steps
+The processing steps are in `code` and are broken up into four folders of scripts, corresponding to a type of operations: `1a_spatial_registration`,  `1b_semanatic_segmentation`, `2_geospatialize_imagery_predictions` and  `3_analysis`. The first two folders can be run in an arbitrary order since they do not depend on each other, but otherwise each folder must be run sequentially. Within each folder there are numbered scripts that must also be run sequentially.
 
-Finally, the geospatial predictions need to be post-processed with `post_process_geospatial_maps.py`. This does two main steps. The first is to geometrically simplify the polygons by applying boundary simplification and morphological operations. The second is to take the simplified polygons and shift them. This is done based on the results of the `registration` scripts such that all of the datasets are spatially registered.
+## Spatial registration
+The goal of registration is to spatially register photogrammetry products across multiple drone datasets. All of the scripts in this section should be run using the `GDRT` conda environment.
+- `1_compute_pairwise_registrations.py`: Determines which datasets overlap. Then, it extracts the canopy height model (CHM) data for the overlapping region, as determined by the initial alignment. Then, the shift which minimizes the discrepency between the CHM heights is found, using an optimization based approach initially developed for registering medical images.
+- `2_compute_global_shifts.py`: The previous step computes a set of pairwise shifts between individual datasets. However, to perform downstream analysis, these pairwise shifts must be converted into a single absolute shift for each dataset. This script uses least squares minimization to optimize a shift for each dataset that respects both the initial location of each dataset as well as the pairwise shifts between datasets.
+- `3_shift_orthos.py`: This script produces a copy of each input orthomosaic using the global shift computed in the previous step. The outputs of this script are not required for any subsequent processing steps, only for visualization.
+
+## Semantic segmentation
+This section covers the steps to train a semantic segmentation model from annotated data and generate predictions on all the images that were collected. This folder consists of bash scripts.
+- `1_create_data_folders.sh`: Creates a train-test split for the annotated data and otherwise formats the data appropriately for model training. Two variables in the bash script need to be edited: `CONDA_ENV_NAME` to match the name of the `segmentation-utils` environment and `SEG_UTILS_DIR` to the directory where the segmentation utils project was installed.
+- `2_train_model.sh`: Trains the model and is compuationally intensive. You will need a GPU-enabled machine with at least 13GB of video RAM (VRAM). Training will take approximately two hours, depending on the quality of your compute. Two variables in the bash script need to be edited: `CONDA_ENV_NAME` to match the name of the `mmsegmentation` environment and `MMSEG_DIR` to the directory where the MMSegmentation project was installed.
+- `3_run_inference.sh`: This runs inference on every image in the dataset. It still requires a GPU-enabled machine but does not require nearly as much VRAM. However, the runtime is multiple hours. Two variables in the bash script need to be edited: `CONDA_ENV_NAME` to match the name of the `mmsegmentation` environment and `MMSEG_DIR` to the directory where the MMSegmentation project was installed.
+
+## Geospatialize imagery predictions
+This section covers taking the per-image predictions generated by semantic segmentation and processing them into corresponding geospatial predictions.
+- `1_project_labels.py`: Projects the image-based predictions to the mesh representation derived from photogrammetry. The fraction of predictions across all images for each class is recorded for every face on the mesh and saved out. This script should be run using the `geograypher` conda environment.
+- `2_convert_faces_to_geospatial.py`: This tTakes the per-face information and converts it into geospatial information. Only faces which had a high degree of classification agreement across views are included. This threshold is determined by the `CONFIDENCE_THRESHOLD` constant which is imported from `constants.py`. This script should be run using the `geograypher` conda environment.
+- `3_post_process_geospatial_maps.py`: Performs a combination of geometry simplifications, dilates, and errodes to simplify the geometry of the geospatial predictions. It also shifts each predicted map based on the results of geospatial registration. This script should be run using the `spatial-utils` conda environment.
+
+## Analysis
+The goal of this section is to conduct the final interpretation of the results. Both steps should be run using the `spatial-utils` conda environment.
+- `1_merge_within_site_year.py`: There are multiple datasets for each site and year and this script merges the predictions across all of them. For each location, the final class is assigned based on what was predicted most commonly across all datasets. If there is a tie, it is broken in favor of the least common class. These merged predictions are computed only for the regions which are present in all years that have any data.
+- `2_show_transition.py`: Computes the fraction of each class for each site and year. Then, within a given site, the fraction of each class in the first year that transitions to each other class is computed.
