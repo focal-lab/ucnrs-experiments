@@ -31,7 +31,7 @@ checkpoint_file = Path(WORK_DIR, "iter_10000.pth")
 
 # Run inference
 inference_main(
-    config_path=str(config_files),
+    config_path=str(config_file),
     checkpoint_path=str(checkpoint_file),
     image_folder=ALL_IMAGES_FOLDER,
     output_folder=PER_IMAGE_PREDICTIONS_FOLDER,
