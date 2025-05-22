@@ -3,15 +3,12 @@ from pathlib import Path
 
 import shapely
 import geopandas as gpd
-import numpy as np
-import pandas as pd
 
 from spatial_utils.geofileops_wrappers import geofileops_clip
 
 # Add folder where constants.py is to system search path
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
 from constants import (
-    CLASS_NAMES,
     MERGED_MAPS_FOLDER,
     TRANSITION_MATRICES_FOLDER,
     TRANSITION_MATRIX_PLOTS_FOLDER,
@@ -54,6 +51,7 @@ for reserve in RESERVES:
         # TODO this could be updated to geofileops, but it seems like a fairly fast operation anyway
         intersection = shapely.intersection_all(bounds_per_year)
 
+        # Clip each year's data, if present
         if separate_2020 is not None:
             separate_2020 = geofileops_clip(separate_2020, intersection)
 
@@ -93,12 +91,14 @@ for reserve in RESERVES:
         # and just crop each file with the other one, which would produce the same results
         intersection = shapely.intersection(merged_2020, merged_2023_2024)
 
+        # Clip each dataset, if present
         if merged_2020 is not None:
             merged_2020 = geofileops_clip(merged_2020, intersection)
 
         if merged_2023_2024 is not None:
             merged_2023_2024 = geofileops_clip(merged_2023_2024, intersection)
 
+    # Write out results
     if merged_2020 is not None:
         merged_2020.to_file(
             Path(MERGED_CLIPPED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg")

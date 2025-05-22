@@ -5,7 +5,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 from shapely import box
-from spatial_utils.geofileops_wrappers import geofileops_clip, geofileops_dissolve
+from spatial_utils.geofileops_wrappers import geofileops_dissolve
 from spatial_utils.geometric import merge_classified_polygons_by_voting
 from spatial_utils.geospatial import ensure_projected_CRS
 
@@ -20,6 +20,17 @@ from constants import (
 
 # Which reserves to process, default is all
 RESERVES = ["BORR", "Quail", "Hastings"]
+
+TIEBREAKING_ORDER = [
+    "SD_shrub_dead",
+    "MM_man_made_object",
+    "W_water",
+    "HL_herbaceous_live",
+    "SL_shrub_live",
+    "TD_tree_dead",
+    "TL_tree_live",
+    "BE_bare_earth",
+]
 
 # Should missions be retained only if they were collected during a time where leaves are expected
 ONLY_LEAF_ON = True
@@ -51,7 +62,6 @@ RESERVE_BOUNDS = ensure_projected_CRS(RESERVE_BOUNDS)
 
 def compute_merged(
     preds: gpd.GeoDataFrame,
-    shared_region: gpd.GeoDataFrame,
     output_file: Path,
     ensure_nonoverlapping: bool = False,
 ):
@@ -66,36 +76,32 @@ def compute_merged(
     preds = ensure_projected_CRS(preds)
     # Lower the precision of the geometry to make future operations faster
     preds.geometry = preds.set_precision(grid_size=0.01)
-    # Clip the geometry to the shared region
-    print("About to clip")
-    clipped = geofileops_clip(preds, shared_region)
-    print("Done clipping")
     # Whether we want to ensure no class regions overlap
     if ensure_nonoverlapping:
         print("About to merge by voting")
-        subset = merge_classified_polygons_by_voting(clipped, "class_names")
-        # Add back the ID column
-        subset["class_ID"] = [
-            CLASS_NAMES.index(c) for c in subset["class_names"].to_list()
-        ]
+        merged = merge_classified_polygons_by_voting(
+            preds,
+            "class_names",
+            tiebreaking_class_order=TIEBREAKING_ORDER,
+            print_tiebreaking_stats=True,
+        )
         # The class names are dropped in this process, so add them back in
+        merged["class_ID"] = [
+            CLASS_NAMES.index(c) for c in merged["class_names"].to_list()
+        ]
         print("Done merging")
     else:
         # Dissolve all instances of the same class across all predicted datasets
-        subset = geofileops_dissolve(
-            clipped, groupby_columns="class_names", retain_all_columns=True
+        merged = geofileops_dissolve(
+            preds, groupby_columns="class_names", retain_all_columns=True
         )
 
     # Clean up the geometry
-    subset.geometry = subset.buffer(0)
-    # Compute the area fraction
-    total_area = shared_region.to_crs(subset.crs).area.values[0]
-
-    subset["area_fraction"] = subset.area / total_area
+    merged.geometry = merged.buffer(0)
 
     # Write out the file
     output_file.parent.mkdir(parents=True, exist_ok=True)
-    subset.to_file(output_file)
+    merged.to_file(output_file)
 
 
 # This all needs to be wrapped in this block because of weird issues with multiprocessing in geofileops
@@ -157,20 +163,6 @@ if __name__ == "__main__":
         reserve_preds["year"] = reserve_preds["earliest_datetime_local_derived"].dt.year
         reserve_preds["is_2020"] = reserve_preds["year"] == 2020
 
-        # Get the bounds of the predictions for each year
-        per_year_bounds = reserve_preds.dissolve(by="year", as_index=False)
-
-        # Find the areas that are present in all years for which any data is available
-        shared_region_separate_years = gpd.GeoDataFrame(
-            geometry=[per_year_bounds.geometry.intersection_all()],
-            crs=per_year_bounds.crs,
-        )
-        # Perform the same operation, but first merge 2023 and 2024
-        shared_region_merged_years = gpd.GeoDataFrame(
-            geometry=[per_year_bounds.dissolve("is_2020").geometry.intersection_all()],
-            crs=per_year_bounds.crs,
-        )
-
         # Compute the merged versions, separated by individual years
         reserve_preds_2020 = reserve_preds[reserve_preds.year == 2020]
         reserve_preds_2023 = reserve_preds[reserve_preds.year == 2023]
@@ -178,20 +170,17 @@ if __name__ == "__main__":
 
         compute_merged(
             reserve_preds_2020,
-            shared_region_separate_years,
-            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_separate_years.gpkg"),
+            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2020.gpkg"),
             ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
         )
         compute_merged(
             reserve_preds_2023,
-            shared_region_separate_years,
-            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_separate_years.gpkg"),
+            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2023.gpkg"),
             ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
         )
         compute_merged(
             reserve_preds_2024,
-            shared_region_separate_years,
-            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2024_separate_years.gpkg"),
+            output_file=Path(MERGED_MAPS_FOLDER, f"{reserve}_2024.gpkg"),
             ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
         )
 
@@ -199,19 +188,9 @@ if __name__ == "__main__":
         # there is data for both '23 and '24
         if len(reserve_preds_2023) > 0 and len(reserve_preds_2024) > 0:
             compute_merged(
-                reserve_preds[reserve_preds.is_2020],
-                shared_region_merged_years,
-                output_file=Path(
-                    MERGED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg"
-                ),
-                ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
-            )
-
-            compute_merged(
                 reserve_preds[~reserve_preds.is_2020],
-                shared_region_merged_years,
                 output_file=Path(
-                    MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg"
+                    MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged.gpkg"
                 ),
                 ensure_nonoverlapping=ENSURE_NONOVERLAPPING,
             )
