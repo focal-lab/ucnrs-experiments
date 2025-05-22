@@ -13,7 +13,7 @@ IDS_TO_LABELS = {
 CLASS_NAMES = list(IDS_TO_LABELS.values())
 CLASS_ABBREVIATIONS = [x.split("_")[0] for x in CLASS_NAMES]
 
-MESH_DOWNSAMPLE = 0.2
+MESH_DOWNSAMPLE = 1
 AGGREGATION_IMAGE_SCALE = 0.25
 
 N_CAMERAS_PER_CHUNK = 100
@@ -26,8 +26,6 @@ BUFFER_AMOUNT = 0.2
 VIS = False
 TARGET_GSD = 0.25
 MIN_OVERLAP_TO_REGISTER = 50 ^ 2
-
-SKIP_EXISTING = True
 
 # Any pairwise shift greater than this value will be considered an outlier and removed
 MAX_PAIRWISE_SHIFT = 10
@@ -46,8 +44,14 @@ CHMS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "CHMs")
 CAMERAS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "cameras")
 MESHES_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "meshes")
 ORTHOS_FOLDER = Path(PHOTOGRAMMETRY_FOLDER, "orthos")
+TRAINING_IMAGES_FOLDER = Path(DATA_FOLDER, "inputs", "TODO")
+TRAINING_LABELS_FOLDER = Path(DATA_FOLDER, "inputs", "TODO")
 
 ## intermediate
+WORK_DIR = Path(DATA_FOLDER, "intermediate", "training_results")
+CITYSCAPES_FORMATTED_TRAINING_DATA = Path(
+    DATA_FOLDER, "intermediate", "model_train_val_dataset"
+)
 PER_IMAGE_PREDICTIONS_FOLDER = Path(
     DATA_FOLDER, "intermediate", "per_image_predictions"
 )
