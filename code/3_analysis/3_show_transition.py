@@ -12,7 +12,7 @@ from spatial_utils.geofileops_wrappers import geofileops_overlay
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
 from constants import (
     CLASS_NAMES,
-    MERGED_MAPS_FOLDER,
+    MERGED_CLIPPED_MAPS_FOLDER,
     TRANSITION_MATRICES_FOLDER,
     TRANSITION_MATRIX_PLOTS_FOLDER,
     CLASS_ABBREVIATIONS,
@@ -178,13 +178,13 @@ TRANSITION_MATRIX_PLOTS_FOLDER.mkdir(parents=True, exist_ok=True)
 for reserve in RESERVES:
     # Read the merged files for each year
     separate_2020 = read_if_present(
-        Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_separate_years.gpkg")
+        Path(MERGED_CLIPPED_MAPS_FOLDER, f"{reserve}_2020_separate_years.gpkg")
     )
     separate_2023 = read_if_present(
-        Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_separate_years.gpkg")
+        Path(MERGED_CLIPPED_MAPS_FOLDER, f"{reserve}_2023_separate_years.gpkg")
     )
     separate_2024 = read_if_present(
-        Path(MERGED_MAPS_FOLDER, f"{reserve}_2024_separate_years.gpkg")
+        Path(MERGED_CLIPPED_MAPS_FOLDER, f"{reserve}_2024_separate_years.gpkg")
     )
 
     # Populate a table of class fractions
@@ -235,10 +235,10 @@ for reserve in RESERVES:
 for reserve in RESERVES:
     # Read the files corresponding to the merged 2023+2024 data
     merged_2020 = read_if_present(
-        Path(MERGED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg")
+        Path(MERGED_CLIPPED_MAPS_FOLDER, f"{reserve}_2020_merged_years.gpkg")
     )
     merged_2023_2024 = read_if_present(
-        Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg")
+        Path(MERGED_CLIPPED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg")
     )
 
     # Populate a table of class fractions for the merged data
