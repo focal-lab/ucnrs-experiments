@@ -18,6 +18,7 @@ sys.path.append(mmseg_search_path)
 # Import the main function from the inference script
 from inference import main as inference_main
 
+# If you run out of memory, try setting this value to 1
 INFERENCE_BATCH_SIZE = 2
 
 # Determine the path to the single config file in the formatted training directory
