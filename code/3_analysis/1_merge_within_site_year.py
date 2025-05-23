@@ -101,6 +101,10 @@ def compute_merged(
 
     # Write out the file
     output_file.parent.mkdir(parents=True, exist_ok=True)
+    # Remove file if it exists since weird thinks can happen with gpkg data containing multiple layers
+    # if a file exists already
+    output_file.unlink(missing_ok=True)
+    # Write to file
     merged.to_file(output_file)
 
 
