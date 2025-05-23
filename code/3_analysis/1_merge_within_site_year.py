@@ -21,6 +21,9 @@ from constants import (
 # Which reserves to process, default is all
 RESERVES = ["BORR", "Quail", "Hastings"]
 
+# The order in which ties will be chosen if there are an equal number of datasets voting for a given
+# class. Starts with the first class in the list, which was determined to be the rarest across the
+# combination of all sites and years
 TIEBREAKING_ORDER = [
     "SD_shrub_dead",
     "MM_man_made_object",
@@ -79,6 +82,7 @@ def compute_merged(
     # Whether we want to ensure no class regions overlap
     if ensure_nonoverlapping:
         print("About to merge by voting")
+        # Merge classes by determining how many datasets produced a vote for one class
         merged = merge_classified_polygons_by_voting(
             preds,
             "class_names",

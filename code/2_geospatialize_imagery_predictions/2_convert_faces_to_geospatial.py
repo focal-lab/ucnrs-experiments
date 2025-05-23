@@ -25,8 +25,9 @@ def project_dataset(dataset_id, skip_existings=False):
     # Path to input photogrammetry products
     mesh_file = Path(MESHES_FOLDER, f"{dataset_id}.ply")
     cameras_file = Path(CAMERAS_FOLDER, f"{dataset_id}.xml")
-    # Output files for the per-face result
+    # Input file for the per-face result
     predicted_face_values_file = Path(PROJECTIONS_TO_FACES_FOLDER, f"{dataset_id}.npy")
+    # Output file for the data converted to geospatial
     top_down_vector_projection_file = Path(
         PROJECTIONS_TO_GEOSPATIAL_FOLDER, f"{dataset_id}.gpkg"
     )

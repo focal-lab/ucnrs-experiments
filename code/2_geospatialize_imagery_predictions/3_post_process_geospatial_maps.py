@@ -26,13 +26,18 @@ from constants import (
     SKIP_EXISTING,
 )
 
+# Whether to perform morphological and simplification operations
 RUN_POST_PROCESSING = True
+# Whether to shift the files. RUN_POST_PROCESSING must have been run in the past but this step may
+# be re-run with an updated shift
 RUN_SHIFTS = True
 
 
 def post_process_gfo(dataset_id, input_path, output_path, metadata):
     logging.basicConfig(level=logging.INFO)
     input_data = gpd.read_file(input_path)
+    # Perform a series of spatial operations to decrease the number of vertices, remove holes,
+    # and remove islands
     simplified1 = geofileops_simplify(
         input_data, tolerence=SIMPLIFY_TOL, convert_to_projected_CRS=True
     )
@@ -49,6 +54,7 @@ def post_process_gfo(dataset_id, input_path, output_path, metadata):
         buffered3, tolerence=SIMPLIFY_TOL, convert_to_projected_CRS=True
     )
 
+    # Ensure that no classes overlap by prioritizing the classes with less area in the dataset
     nonoverlapping = ensure_non_overlapping_polygons(simplified2)
     # The geofileops implementation of clip has errors if there are geometry collections
     # Turn everything into polygons or multipolygons
@@ -64,6 +70,7 @@ def post_process_gfo(dataset_id, input_path, output_path, metadata):
     # Extract the metadata for this mission
     metadata_for_mission = metadata.query("@dataset_id == mission_id")
 
+    # Clip to the bounds of the flight polygon
     clipped = geofileops_clip(nonoverlapping, metadata_for_mission)
     clipped.to_file(output_path)
 
@@ -95,11 +102,16 @@ if RUN_POST_PROCESSING:
 
 
 if RUN_SHIFTS:
+    # Determine the filenames output by the last step
     map_files = sorted(POST_PROCESSED_MAPS_FOLDER.glob("*"))
-
+    # Read the shifts from the registration step
     with open(SHIFTS_PER_DATASET, "r") as infile:
         shifts_per_dataset = json.load(infile)
-        SHIFTED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
+
+    # Ensure the output folder exists
+    SHIFTED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
+
+    # Iterate over maps
     for map_file in map_files:
         print(f"shifting {map_file}")
 
@@ -107,15 +119,16 @@ if RUN_SHIFTS:
         pred = gpd.read_file(map_file)
         # Record the original CRS
         original_crs = pred.crs
-        print(pred)
         # Convert to a projected CRS. The shift is assumed to be with respect to this projected CRS.
         pred = ensure_projected_CRS(pred)
 
         # Get the shift
         name = map_file.stem
+        # Check if there was a shift computed for this dataset
         if name in shifts_per_dataset:
             shift = shifts_per_dataset[name]
         else:
+            # If not, set it to zero
             shift = (0, 0)
 
         # Apply the shift
@@ -127,6 +140,5 @@ if RUN_SHIFTS:
         output_file = Path(
             SHIFTED_MAPS_FOLDER, map_file.relative_to(POST_PROCESSED_MAPS_FOLDER)
         )
-        # Create the output folder and save
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+        # Save the file
         pred.to_file(output_file)

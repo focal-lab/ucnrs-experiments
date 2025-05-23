@@ -83,7 +83,7 @@ for reserve in RESERVES:
         Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg")
     )
 
-    if not None in (merged_2020, merged_2023_2024):
+    if merged_2020 is not None and merged_2023_2024 is not None:
         # No need to do anything if there aren't two things to compare
 
         # Compute the intersection between the two

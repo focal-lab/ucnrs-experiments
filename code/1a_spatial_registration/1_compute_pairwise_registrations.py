@@ -22,16 +22,20 @@ from constants import (
 def get_all_registrations(overlay_gdf):
     all_predicted_shifts = []
 
+    # Iterate over all the pairs of overlapping datasets
     for _, row in overlay_gdf.iterrows():
-        mission_1 = row["mission_id_1"][3:]
-        mission_2 = row["mission_id_2"][3:]
+        # Strip leading zeros from mission name
+        mission_1 = row["mission_id_1"].lstrip("0")
+        mission_2 = row["mission_id_2"].lstrip("0")
+        # Compute the years for each dataset
         year_1 = row["earliest_year_derived_1"]
         year_2 = row["earliest_year_derived_2"]
-
+        # Compute the CHM file path
         fixed_chm_filename = Path(CHMS_FOLDER, f"chm-mesh-{mission_1}.tif")
         moving_chm_filename = Path(CHMS_FOLDER, f"chm-mesh-{mission_2}.tif")
         print(f"Running {mission_1} and {mission_2} for year {year_1} and {year_2}")
         try:
+            # Try to compute a shift between the two datasets based on minimizing the CHM discrepency
             transforms = align_two_rasters(
                 fixed_chm_filename,
                 moving_chm_filename,
@@ -41,9 +45,11 @@ def get_all_registrations(overlay_gdf):
                 vis_kwargs={},
                 aligner_kwargs={"align_means": False},
             )
+            # Extract the shift component of the predicted transform
             mv2fx_tr = transforms["geospatial_mv2fx_transform"]
             predicted_shift = [mv2fx_tr[0, 2], mv2fx_tr[1, 2]]
-        except:
+        except Exception as e:
+            print(e.__traceback__)
             print(f"Failed for missions {mission_1} and {mission_2}")
             predicted_shift = (np.nan, np.nan)
         print(f"Predicted shift: {predicted_shift}")

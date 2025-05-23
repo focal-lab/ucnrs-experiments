@@ -69,8 +69,6 @@ plt.hist(pairwise_shift_dists, bins=25)
 plt.show()
 plt.clf()
 
-# Print the shifts in order of magnitude
-
 # Negate to sort largest to smallest
 sorting_shift_inds = np.argsort(-pairwise_shift_dists)
 dataset_ids = np.array(list(shifts.keys()))
