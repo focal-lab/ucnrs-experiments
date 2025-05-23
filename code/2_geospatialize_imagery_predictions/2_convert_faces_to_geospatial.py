@@ -28,7 +28,7 @@ def project_dataset(dataset_id, skip_existings=False):
     # Output files for the per-face result
     predicted_face_values_file = Path(PROJECTIONS_TO_FACES_FOLDER, f"{dataset_id}.npy")
     top_down_vector_projection_file = Path(
-        PROJECTIONS_TO_GEOSPATIAL_FOLDER, f"{dataset_id}.geojson"
+        PROJECTIONS_TO_GEOSPATIAL_FOLDER, f"{dataset_id}.gpkg"
     )
 
     if skip_existings and top_down_vector_projection_file.is_file():

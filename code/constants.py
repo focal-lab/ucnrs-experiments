@@ -69,6 +69,7 @@ ABSOLUTE_SHIFTS_FILE = Path(DATA_FOLDER, "intermediate", "shift_per_dataset.json
 SHIFTED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_maps")
 SHIFTED_ORTHOS_FOLDER = Path(DATA_FOLDER, "outputs", "shifted_orthos")
 MERGED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "merged_maps")
+MERGED_CLIPPED_MAPS_FOLDER = Path(DATA_FOLDER, "outputs", "merged_clipped_maps")
 TRANSITION_MATRICES_FOLDER = Path(DATA_FOLDER, "outputs", "transition_matrices")
 TRANSITION_MATRIX_PLOTS_FOLDER = Path(
     DATA_FOLDER, "outputs", "transition_matrices_plots"
