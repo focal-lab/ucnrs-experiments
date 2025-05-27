@@ -20,7 +20,7 @@ This project is used for converting per-image predictions into geospatial maps. 
 This project is used for spatially registring data products from multiple drone missions. The tag is `v.xyz` and the conda environment should be called `GDRT`.
 
 # Data
-All the data required to reproduce these experiments are provided, broken up into `inputs`, `intermediate`, and `outputs`. The data can be downloaded from this [box folder](https::/TODO/link).
+All the data required to reproduce these experiments are provided, broken up into `inputs`, `intermediate`, and `outputs`. The data can be downloaded from this [box folder](https://ucdavis.box.com/v/UCNRS-UAV-vegetation-mapping).
 
 # Processing steps
 The processing steps are in `code` and are broken up into four folders of scripts, corresponding to a type of operations: `1a_spatial_registration`,  `1b_semanatic_segmentation`, `2_geospatialize_imagery_predictions` and  `3_analysis`. The first two folders can be run in an arbitrary order since they do not depend on each other, but otherwise each folder must be run sequentially. Within each folder there are numbered scripts that must also be run sequentially.
