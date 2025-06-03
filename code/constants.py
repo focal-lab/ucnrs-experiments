@@ -74,3 +74,6 @@ TRANSITION_MATRICES_FOLDER = Path(DATA_FOLDER, "outputs", "transition_matrices")
 TRANSITION_MATRIX_PLOTS_FOLDER = Path(
     DATA_FOLDER, "outputs", "transition_matrices_plots"
 )
+TRANSITION_MATRIX_TABLE_FOLDER = Path(
+    DATA_FOLDER, "outputs", "transition_matrices_tables"
+)

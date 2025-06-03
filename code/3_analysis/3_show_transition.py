@@ -15,6 +15,7 @@ from constants import (
     MERGED_CLIPPED_MAPS_FOLDER,
     TRANSITION_MATRICES_FOLDER,
     TRANSITION_MATRIX_PLOTS_FOLDER,
+    TRANSITION_MATRIX_TABLE_FOLDER,
     CLASS_ABBREVIATIONS,
 )
 
@@ -136,6 +137,14 @@ def compute_transition_matrix(
         transition_matrix.sum(axis=1), axis=1
     )
 
+    abundance = np.sum(transition_matrix, axis=1)
+    data = np.concat([np.expand_dims(100*abundance, axis=1) / abundance.sum(), transition_matrix_row_normed * 100], axis=1)
+    df = pd.DataFrame(data=data, columns=["Abundance"] + CLASS_ABBREVIATIONS, index=CLASS_ABBREVIATIONS)
+
+    with open(Path(TRANSITION_MATRIX_TABLE_FOLDER,f"{reserve}_{first_year}_{second_year}.txt"), "w") as outfile:
+        outfile.write(df.to_latex(float_format="%.1f",column_format="|l||r|r|r|r|r|r|r|r|r|"))
+        outfile.write(f"\\caption{{{reserve}: {first_year}-{second_year}}}")
+
     # Display the results
     plot_transition(transition_matrix, CLASS_ABBREVIATIONS)
     plt.title(f"Transition matrix for {reserve} for {first_year}-{second_year}")
@@ -173,6 +182,7 @@ def read_if_present(input_file):
 # Make output directories
 TRANSITION_MATRICES_FOLDER.mkdir(parents=True, exist_ok=True)
 TRANSITION_MATRIX_PLOTS_FOLDER.mkdir(parents=True, exist_ok=True)
+TRANSITION_MATRIX_TABLE_FOLDER.mkdir(parents=True, exist_ok=True)
 
 # Compute transition matrices for each reserve
 for reserve in RESERVES:
@@ -190,18 +200,11 @@ for reserve in RESERVES:
     # Populate a table of class fractions
     separate_table = np.zeros((8, 3))
     if separate_2020 is not None:
-        separate_table[separate_2020["class_ID"].to_numpy(), 0] = separate_2020[
-            "area_fraction"
-        ]
+        separate_table[separate_2020["class_ID"].to_numpy(), 0] = separate_2020.area / separate_2020.area.sum()
     if separate_2023 is not None:
-        separate_table[separate_2023["class_ID"].to_numpy(), 1] = separate_2023[
-            "area_fraction"
-        ]
+        separate_table[separate_2023["class_ID"].to_numpy(), 1] = separate_2023.area / separate_2023.area.sum()
     if separate_2024 is not None:
-        separate_table[separate_2024["class_ID"].to_numpy(), 2] = separate_2024[
-            "area_fraction"
-        ]
-
+        separate_table[separate_2024["class_ID"].to_numpy(), 2] = separate_2024.area / separate_2024.area.sum()
     # Display the class fractions
     separate_table_vis = pd.DataFrame(
         data=separate_table, columns=["2020", "2023", "2024"], index=CLASS_NAMES
@@ -244,13 +247,9 @@ for reserve in RESERVES:
     # Populate a table of class fractions for the merged data
     merged_table = np.zeros((8, 2))
     if merged_2020 is not None:
-        separate_table[merged_2020["class_ID"].to_numpy(), 0] = merged_2020[
-            "area_fraction"
-        ]
+        separate_table[merged_2020["class_ID"].to_numpy(), 0] = merged_2020.area / merged_2020.area.sum()
     if merged_2023_2024 is not None:
-        separate_table[merged_2023_2024["class_ID"].to_numpy(), 1] = merged_2023_2024[
-            "area_fraction"
-        ]
+        separate_table[merged_2023_2024["class_ID"].to_numpy(), 1] = merged_2023_2024.area / merged_2023_2024.area.sum()
 
     # Display the class fractions
     merged_table_vis = pd.DataFrame(

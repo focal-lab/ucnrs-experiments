@@ -11,7 +11,7 @@ This project is used for training and deploying state of the art semantic segeme
 This project is used for managing practical challenges around preparing data to be used for semantic segmentation experiments. The tag is `v0.1.0` and the conda environment should be called `segmentation-utils`.
 
 ## [Spatial utils](https://github.com/open-forest-observatory/spatial-utils)
-This project is a collection of geospatial operations that are somewhat general, but still more complex that what is provided by existing foundational libraries such as `geopandas` and `geofileops`. The tag is `v0.1.0` and the conda environment should be called `spatial-utils`.
+This project is a collection of geospatial operations that are somewhat general, but still more complex that what is provided by existing foundational libraries such as `geopandas` and `geofileops`. The tag is `v0.1.0` and the conda environment should be called `spatial-utils`. Once you have followed the instructions in the `spatial-utils` repo, additionally install the `jinja2` library with `pip install jinja2`.
 
 ## [Geograypher](https://github.com/open-forest-observatory/geograypher)
 This project is used for converting per-image predictions into geospatial maps. The tag is `v0.3.0` and the conda environment should be called `geograypher`.
