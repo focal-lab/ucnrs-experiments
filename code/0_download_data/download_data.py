@@ -18,8 +18,8 @@ from constants import (
 )
 
 REMOTE = "js2s3"
-DOWNLOAD_PHOTOGRAMMETRY = False
-DOWNLOAD_IMAGES = True
+DOWNLOAD_PHOTOGRAMMETRY = True
+DOWNLOAD_IMAGES = False
 
 # Read in a list of datasets that need to be downloaded
 metadata = gpd.read_file(METADATA_FILE)
@@ -52,19 +52,19 @@ if DOWNLOAD_PHOTOGRAMMETRY:
         camera_path_remote = photogrammetry_path_remote + f"{mission_id}_cameras.xml"
         camera_path_local = Path(CAMERAS_FOLDER, f"{mission_id}.xml")
 
-        rclone.copy(camera_path_remote, camera_path_local)
+        rclone.copyto(camera_path_remote, camera_path_local)
 
         # Copy the CHMs
         CHM_path_remote = photogrammetry_path_remote + f"{mission_id}_chm-ptcloud.tif"
         CHM_path_local = Path(CHMS_FOLDER, f"{mission_id}.tif")
 
-        rclone.copy(CHM_path_remote, CHM_path_local)
+        rclone.copyto(CHM_path_remote, CHM_path_local)
 
         # Copy the mesh
         mesh_path_remote = photogrammetry_path_remote + f"{mission_id}_model-local.ply"
         mesh_path_local = Path(MESHES_FOLDER, f"{mission_id}.ply")
 
-        rclone.copy(mesh_path_remote, mesh_path_local)
+        rclone.copyto(mesh_path_remote, mesh_path_local)
 
         # Copy the ortho
         ortho_path_remote = (
@@ -72,7 +72,7 @@ if DOWNLOAD_PHOTOGRAMMETRY:
         )
         ortho_path_local = Path(ORTHOS_FOLDER, f"{mission_id}.tif")
 
-        rclone.copy(ortho_path_remote, ortho_path_local)
+        rclone.copyto(ortho_path_remote, ortho_path_local)
 
         # Copy the images
         images_path_remote = ()
@@ -92,8 +92,6 @@ if DOWNLOAD_IMAGES:
         images_output_folder = Path(ALL_IMAGES_FOLDER, mission_id)
         print(f"Downloading to {zipfile}")
         # Download the zip file
-        # TODO determine why `copyto` vs. `copy` is required. The latter creates a directory with
-        # the .zip extension then creates the file with the original name within it.
         rclone.copyto(images_path_remote, zipfile)
         print("About to unpack the zip file")
         # Unzip the zip file
