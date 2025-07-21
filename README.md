@@ -4,6 +4,13 @@ This repository contains the processing steps to replicate experiments on a vege
 # Install
 These experiments rely on functionality from several projects, many developed by the [Open Forest Observatory](https://openforestobservatory.org/). Because they have incompatible dependencies, you will need to create multiple separate conda environments for various steps. You will largely follow the instructions provided in the README file of each repository. However, if you want to ensure that the code you are using from these projects exactly matches what was used to conduct these experiments, conduct the following steps. First, clone the project locally from github. Then, from within the project, run `git checkout <tag name>` where the `<tag name>` refers to a named version of the code listed in each of the following sections. Also, there is a suggested name for the conda environment for each tool in the following sections.
 
+## Download step
+```
+conda create -n download python=3.10
+conda install geopandas
+pip install rclone-python
+```
+
 ## [MMSegmentation](https://github.com/open-forest-observatory/mmsegmentation/tree/main)
 This project is used for training and deploying state of the art semantic segementation models. Our fork has a small set of changes to the base repository. The tag is `v0.1.0` and the conda environment should be called `mmseg`.
 
