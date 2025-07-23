@@ -7,7 +7,6 @@ sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
 from constants import (
     ALL_IMAGES_FOLDER,
     PER_IMAGE_PREDICTIONS_FOLDER,
-    CITYSCAPES_FORMATTED_TRAINING_DATA,
     WORK_DIR,
 )
 
@@ -22,7 +21,7 @@ from inference import main as inference_main
 INFERENCE_BATCH_SIZE = 2
 
 # Determine the path to the single config file in the formatted training directory
-config_files = list(CITYSCAPES_FORMATTED_TRAINING_DATA.glob("*.py"))
+config_files = list(WORK_DIR.glob("*.py"))
 if len(config_files) != 1:
     raise ValueError("Config file is not present and unambiguous")
 config_file = config_files[0]
