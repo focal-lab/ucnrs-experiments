@@ -7,6 +7,7 @@ import pandas as pd
 from GDRT.raster.register_images import align_two_rasters
 from GDRT.raster.registration_algorithms import sitk_intensity_registration
 from scientific_python_utils.geospatial import ensure_projected_CRS
+import traceback
 
 # Add folder where constants.py is to system search path
 sys.path.append(str(Path(Path(__file__).parent, "..").resolve()))
@@ -25,14 +26,14 @@ def get_all_registrations(overlay_gdf):
     # Iterate over all the pairs of overlapping datasets
     for _, row in overlay_gdf.iterrows():
         # Strip leading zeros from mission name
-        mission_1 = row["mission_id_1"].lstrip("0")
-        mission_2 = row["mission_id_2"].lstrip("0")
+        mission_1 = row["mission_id_1"]
+        mission_2 = row["mission_id_2"]
         # Compute the years for each dataset
         year_1 = row["earliest_year_derived_1"]
         year_2 = row["earliest_year_derived_2"]
         # Compute the CHM file path
-        fixed_chm_filename = Path(CHMS_FOLDER, f"chm-mesh-{mission_1}.tif")
-        moving_chm_filename = Path(CHMS_FOLDER, f"chm-mesh-{mission_2}.tif")
+        fixed_chm_filename = Path(CHMS_FOLDER, f"{mission_1}.tif")
+        moving_chm_filename = Path(CHMS_FOLDER, f"{mission_2}.tif")
         print(f"Running {mission_1} and {mission_2} for year {year_1} and {year_2}")
         try:
             # Try to compute a shift between the two datasets based on minimizing the CHM discrepency
@@ -49,7 +50,7 @@ def get_all_registrations(overlay_gdf):
             mv2fx_tr = transforms["geospatial_mv2fx_transform"]
             predicted_shift = [mv2fx_tr[0, 2], mv2fx_tr[1, 2]]
         except Exception as e:
-            print(e.__traceback__)
+            print(e)
             print(f"Failed for missions {mission_1} and {mission_2}")
             predicted_shift = (np.nan, np.nan)
         print(f"Predicted shift: {predicted_shift}")
