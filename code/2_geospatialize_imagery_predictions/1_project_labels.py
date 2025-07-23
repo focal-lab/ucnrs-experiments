@@ -25,6 +25,9 @@ def project_dataset(dataset_id, skip_existings=False):
     # Compute relavent paths based on dataset
     # Path to the raw images
     images_folder = Path(ALL_IMAGES_FOLDER, dataset_id)
+    # Location of the images during the original metashape run. This must be subtracted from the
+    # recorded path name
+    original_image_folder = Path("/data/03_input-images", dataset_id)
     # Path to the predictions from the model
     labels_folder = Path(PER_IMAGE_PREDICTIONS_FOLDER, dataset_id)
 
@@ -51,6 +54,7 @@ def project_dataset(dataset_id, skip_existings=False):
         cameras_file,
         images_folder,
         labels_folder,
+        original_image_folder=original_image_folder,
         IDs_to_labels=IDS_TO_LABELS,
         aggregated_face_values_savefile=predicted_face_values_file,
         mesh_downsample=MESH_DOWNSAMPLE,
