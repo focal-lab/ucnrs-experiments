@@ -80,7 +80,7 @@ for reserve in RESERVES:
     # Read the files corresponding to the 2020 and merged 2023+2024 data
     merged_2020 = read_if_present(Path(MERGED_MAPS_FOLDER, f"{reserve}_2020.gpkg"))
     merged_2023_2024 = read_if_present(
-        Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged_years.gpkg")
+        Path(MERGED_MAPS_FOLDER, f"{reserve}_2023_2024_merged.gpkg")
     )
 
     if merged_2020 is not None and merged_2023_2024 is not None:
@@ -89,7 +89,15 @@ for reserve in RESERVES:
         # Compute the intersection between the two
         # It would be more confusing, but you could alternatively skip computing an explicit intersection
         # and just crop each file with the other one, which would produce the same results
-        intersection = shapely.intersection(merged_2020, merged_2023_2024)
+        intersection = gpd.GeoDataFrame(
+            geometry=[
+                shapely.intersection(
+                    merged_2020.dissolve().geometry[0],
+                    merged_2023_2024.dissolve().geometry[0],
+                )
+            ],
+            crs=merged_2020.crs,
+        )
 
         # Clip each dataset, if present
         if merged_2020 is not None:
