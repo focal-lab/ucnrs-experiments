@@ -2,8 +2,8 @@ import json
 import logging
 import sys
 from pathlib import Path
+import multiprocessing
 
-import geofileops as gfo
 import geopandas as gpd
 from spatial_utils.geofileops_wrappers import (
     geofileops_buffer,
@@ -28,6 +28,11 @@ from constants import (
 
 # Whether to perform morphological and simplification operations
 RUN_POST_PROCESSING = True
+# How many multiprocessing suprocesses to run. If None, no multiprocessing will be used.
+# Postprocessing only takes one core and usually only a few GB of RAM at maximum.
+
+N_MULTIPROCESSING_PROCESSES = 16
+
 # Whether to shift the files. RUN_POST_PROCESSING must have been run in the past but this step may
 # be re-run with an updated shift
 RUN_SHIFTS = True
@@ -80,6 +85,9 @@ if RUN_POST_PROCESSING:
     map_files = sorted(PROJECTIONS_TO_GEOSPATIAL_FOLDER.glob("*"))
 
     POST_PROCESSED_MAPS_FOLDER.mkdir(exist_ok=True, parents=True)
+
+    # Build a list of tuples, each containing the arguments for one dataset
+    args_list = []
     for map_file in map_files:
         dataset_id = map_file.stem
 
@@ -91,14 +99,19 @@ if RUN_POST_PROCESSING:
             print(f"Skipping {dataset_id} because it exists already")
             continue
 
-        print(f"Postprocessing {dataset_id}")
+        # Add the arguments tuple to list to be processed later
+        args_list.append((dataset_id, map_file, output_file, metadata_for_missions))
 
-        post_process_gfo(
-            dataset_id=dataset_id,
-            input_path=map_file,
-            output_path=output_file,
-            metadata=metadata_for_missions,
-        )
+    # Run postprocessing, either multiprocessing or sequentially
+    if N_MULTIPROCESSING_PROCESSES is not None:
+        # Multiprocess with a pool of workers each running in different subproceses
+        with multiprocessing.Pool(processes=N_MULTIPROCESSING_PROCESSES) as pool:
+            pool.starmap(post_process_gfo, args_list)
+    else:
+        for args in args_list:
+            print(f"Running dataset {args[0]}")
+            # Run the processes sequentially by unpacking the arguments
+            post_process_gfo(*args)
 
 
 if RUN_SHIFTS:
