@@ -6,7 +6,8 @@ library(tidyverse)
 
 source("code/4_analysis-ecol/00_constants.R")
 
-COVER_TYPES = c("BE_bare_earth", "HL_herbaceous_live", "HD_herbaceous_dead", "MM_man_made_object", "SD_shrub_dead", "SL_shrub_live", "TD_tree_dead", "TL_tree_live", "W_water")
+COVER_TYPES = c("HG_herbground", "SD_shrub_dead", "SL_shrub_live", "TD_tree_dead", "TL_tree_live", "W_water")
+# COVER_TYPES = c(COVER_TYPES, "BE_bare_earth", "HL_herbaceous_live", "HD_herbaceous_dead", "MM_man_made_object") # Add a layer for whether there are any veg preds in the pixel
 
 
 dem = rast(file.path(DEMS_PATH, "dem_merged.tif"))
@@ -16,10 +17,32 @@ borr20 = st_read(file.path(VEG_PREDS_PATH, "BORR_2020_separate_years.gpkg"))
 hast23 = st_read(file.path(VEG_PREDS_PATH, "Hastings_2023_2024_merged_years.gpkg"))
 borr23 = st_read(file.path(VEG_PREDS_PATH, "BORR_2023_separate_years.gpkg"))
 
-#!!! RESUME
-# Merge "BE_bare_earth", "HL_herbaceous_live", "HD_herbaceous_dead", "MM_man_made_object" to "HG_hergroung"
+# Merge "BE_bare_earth", "HL_herbaceous_live", "HD_herbaceous_dead", "MM_man_made_object" to "HG_herground"
 
-
+hast20 = hast20 |>
+  mutate(class_names = recode(class_names,
+                              "BE_bare_earth" = "HG_herbground",
+                              "HL_herbaceous_live" = "HG_herbground",
+                              "HD_herbaceous_dead" = "HG_herbground",
+                              "MM_man_made_object" = "HG_herbground"))
+borr20 = borr20 |>
+  mutate(class_names = recode(class_names,
+                              "BE_bare_earth" = "HG_herbground",
+                              "HL_herbaceous_live" = "HG_herbground",
+                              "HD_herbaceous_dead" = "HG_herbground",
+                              "MM_man_made_object" = "HG_herbground"))
+hast23 = hast23 |>
+  mutate(class_names = recode(class_names,
+                              "BE_bare_earth" = "HG_herbground",
+                              "HL_herbaceous_live" = "HG_herbground",
+                              "HD_herbaceous_dead" = "HG_herbground",
+                              "MM_man_made_object" = "HG_herbground"))
+borr23 = borr23 |>
+  mutate(class_names = recode(class_names,
+                              "BE_bare_earth" = "HG_herbground",
+                              "HL_herbaceous_live" = "HG_herbground",
+                              "HD_herbaceous_dead" = "HG_herbground",
+                              "MM_man_made_object" = "HG_herbground"))
 
 # We need to get the area of each veg type within each pixel so that we can then aggregate to select
 # the most common veg type (assuming it is at least x% of the pixel)
@@ -40,7 +63,7 @@ get_veg_type_cover = function(cover_type_foc, veg_layer_foc, raster_template, la
   cover_foc = rasterize(veg_foc, template_foc, field = "class_ID", cover = TRUE, fun = "count")
 
   if (nrow(veg_foc) == 0) {
-    values(cover_foc) = 10000
+    values(cover_foc) = NA
   }
   
   cover_foc[is.nan(cover_foc)] = NA
@@ -86,26 +109,43 @@ indices_extended = extend(indices, covers_merged)
 stack = c(covers_extended, indices_extended)
 
 # Check that it makes sense
-writeRaster(stack, file.path(ENV_PREDS_PATH, "veg_preds_and_topo_indices.tif"), overwrite = TRUE)
+writeRaster(stack, file.path(ENV_PREDS_PATH, "veg_preds_and_topo_indices_unmerged.tif"), overwrite = TRUE)
 
 
 d = as.data.frame(stack, xy = TRUE)
 d = d[!is.na(d$contains_preds), ]
 
-# Lump the classes: HL, HD, BG, MM = herbground
-
-
-
 # Get the max cover type for each pixel
-names_d = d |> select(ends_with("_20")) |> names()
+
+# Make sure the 20 and 23 names are consistent
+names20 = d |> select(ends_with("_20")) |> names()
+names23 = d |> select(ends_with("_23")) |> names()
+if (!all(str_sub(names20, 1, -4) == str_sub(names23, 1, -4))) {
+  stop("The cover type names for 20 and 23 do not match!")
+}
+
+names_d = d |> select(ends_with("_20")) |> names() |> str_sub(1, -4)
 d2 = d |>
   rowwise() |>
-  mutate(max_cover_agg20 = names_d[which.max(c_across(ends_with("_20")))],
-         max_cover_agg23 = names_d[which.max(c_across(ends_with("_23")))]) |>
+  mutate(max_cover_type_agg20 = names_d[which.max(c_across(ends_with("_20")))],
+         max_cover_type_agg23 = names_d[which.max(c_across(ends_with("_23")))]) |>
   # Get the area of the max cover type in each pixel
   mutate(max_cover_area_agg20 = max(c_across(ends_with("_20")), na.rm = TRUE),
-         max_cover_area_agg23 = max(c_across(ends_with("_23")), na.rm = TRUE))
+         max_cover_area_agg23 = max(c_across(ends_with("_23")), na.rm = TRUE),
+         tot_cover_agg20 = sum(c_across(ends_with("_20")), na.rm = TRUE),
+         tot_cover_agg23 = sum(c_across(ends_with("_23")), na.rm = TRUE))
 
 
 # To keep a pixel for analysis, it needs to have > 60% of the prediction area in the max
 # cover type and at least 25% of the pixel area in the max cover type
+
+d3 = d2 |>
+  mutate(keep = ((max_cover_area_agg20 / tot_cover_agg20) > 0.6 & (max_cover_area_agg23 / tot_cover_agg23) > 0.6) &
+           (max_cover_area_agg20 > 0.25 & max_cover_area_agg23 > 0.25))
+
+d4 = d3 |>
+  filter(keep) |>
+  select(x, y, starts_with("max_cover_type_agg"), starts_with("max_cover_area_agg"), starts_with("tot_cover_agg"),
+         tpi500, srad, hli, slope)
+
+write_csv(d4, file.path(ENV_PREDS_PATH, "veg_preds_and_topo_indices.csv"))
