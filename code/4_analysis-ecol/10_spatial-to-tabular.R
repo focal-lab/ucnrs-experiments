@@ -190,31 +190,3 @@ values(agg_pred_rast_20)[cell_indexes] <- value_lookup[as.character(values(index
 
 writeRaster(agg_pred_rast_20, file.path(COMPILED_FOR_ANALYSIS_PATH, "max_cover_type_agg20.tif"), overwrite = TRUE)
 
-
-# Get the cells that were dead tree in 2020 but live tree in 2023
-target = agg_pred_rast_20 == "HG_herbground" & agg_pred_rast_23 == "SL_shrub_live"
-
-
-
-### Plotting
-library(tidyterra)
-
-# Crop to hast
-pred_hast = crop(agg_pred_rast_23, st_bbox(hast20))
-
-ggplot() +
-  geom_spatraster(d = pred_hast, aes(fill = veg_pred)) +
-  scale_fill_manual(values = c("TD_tree_dead" = "#c9a628", "TL_tree_live" = "darkgreen", "HG_herbground" = "#ece47d",
-                                "SL_shrub_live" = "#5ac45a", "SD_shrub_dead" = "#8e7b5f"),
-                    na.value = "grey90") +
-  theme_minimal()
-
-# Get the cells that were dead tree in 2020 but live tree in 2023
-
-
-# Crop target to hast
-target_hast = crop(target, st_bbox(hast20))
-plot(target_hast)
-
-
-## Convert to vector and overlay on map
