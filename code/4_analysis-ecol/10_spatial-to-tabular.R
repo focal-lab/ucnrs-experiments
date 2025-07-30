@@ -112,6 +112,17 @@ stack = c(covers_extended, indices_extended)
 writeRaster(stack, file.path(ENV_PREDS_PATH, "veg_preds_and_topo_indices_unmerged.tif"), overwrite = TRUE)
 
 
+# Create a cell index so we can do tabular processing and then merge back to the raster
+index_rast = rast(stack, nlyr = 1)
+index_rast[] = 1:ncell(index_rast)
+names(index_rast) = "cell_index"
+
+writeRaster(index_rast, file.path(ENV_PREDS_PATH, "preds_index.tif"), overwrite = TRUE)
+
+
+stack = c(stack, index_rast)
+
+
 d = as.data.frame(stack, xy = TRUE)
 d = d[!is.na(d$contains_preds), ]
 
@@ -146,6 +157,64 @@ d3 = d2 |>
 d4 = d3 |>
   filter(keep) |>
   select(x, y, starts_with("max_cover_type_agg"), starts_with("max_cover_area_agg"), starts_with("tot_cover_agg"),
-         tpi500, srad, hli, slope)
+         tpi500, srad, hli, slope, cell_index)
 
-write_csv(d4, file.path(ENV_PREDS_PATH, "veg_preds_and_topo_indices.csv"))
+write_csv(d4, file.path(COMPILED_FOR_ANALYSIS_PATH, "veg_preds_and_topo_indices.csv"))
+
+# Put the value in column max_cover_type_agg23 into raster format based on the cell index
+
+# Match raster cell positions where the raster value equals the ID
+cell_indexes <- which(values(index_rast) %in% d4$cell_index)
+
+# Create a lookup vector from ID to value
+value_lookup <- setNames(d4$max_cover_type_agg23, d4$cell_index)
+
+# Assign new values using the lookup
+agg_pred_rast_23 = rast(index_rast, nlyr = 1)
+names(agg_pred_rast_23) <- "veg_pred"
+values(agg_pred_rast_23) <- NA  # Initialize with NA
+values(agg_pred_rast_23)[cell_indexes] <- value_lookup[as.character(values(index_rast)[cell_indexes])]
+
+writeRaster(agg_pred_rast_23, file.path(COMPILED_FOR_ANALYSIS_PATH, "max_cover_type_agg23.tif"), overwrite = TRUE)
+
+# Repeat for 2020
+
+# Create a lookup vector from ID to value
+value_lookup <- setNames(d4$max_cover_type_agg20, d4$cell_index)
+
+# Assign new values using the lookup
+agg_pred_rast_20 = rast(index_rast, nlyr = 1)
+names(agg_pred_rast_20) <- "veg_pred"
+values(agg_pred_rast_20) <- NA  # Initialize with NA
+values(agg_pred_rast_20)[cell_indexes] <- value_lookup[as.character(values(index_rast)[cell_indexes])]
+
+writeRaster(agg_pred_rast_20, file.path(COMPILED_FOR_ANALYSIS_PATH, "max_cover_type_agg20.tif"), overwrite = TRUE)
+
+
+# Get the cells that were dead tree in 2020 but live tree in 2023
+target = agg_pred_rast_20 == "HG_herbground" & agg_pred_rast_23 == "SL_shrub_live"
+
+
+
+### Plotting
+library(tidyterra)
+
+# Crop to hast
+pred_hast = crop(agg_pred_rast_23, st_bbox(hast20))
+
+ggplot() +
+  geom_spatraster(d = pred_hast, aes(fill = veg_pred)) +
+  scale_fill_manual(values = c("TD_tree_dead" = "#c9a628", "TL_tree_live" = "darkgreen", "HG_herbground" = "#ece47d",
+                                "SL_shrub_live" = "#5ac45a", "SD_shrub_dead" = "#8e7b5f"),
+                    na.value = "grey90") +
+  theme_minimal()
+
+# Get the cells that were dead tree in 2020 but live tree in 2023
+
+
+# Crop target to hast
+target_hast = crop(target, st_bbox(hast20))
+plot(target_hast)
+
+
+## Convert to vector and overlay on map
