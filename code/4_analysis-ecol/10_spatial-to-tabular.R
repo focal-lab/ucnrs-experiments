@@ -94,14 +94,15 @@ names(contains_preds) = "contains_preds"
 covers_merged = c(covers_merged_20, covers_merged_23, contains_preds)
 
 
-## Layer in the topographic indices
+## Layer in the topographic indices and fire history
 tpi = rast(file.path(ENV_PREDS_PATH, "tpi500.tif"))
 srad = rast(file.path(ENV_PREDS_PATH, "srad.tif"))
 hli = rast(file.path(ENV_PREDS_PATH, "hli.tif"))
 slope = rast(file.path(ENV_PREDS_PATH, "slope.tif"))
+burned = rast(file.path(FIRE_PERIMS_PATH, "burned-2020.tif"))
 
-indices = c(tpi, srad, hli, slope)
-names(indices) = c("tpi500", "srad", "hli", "slope")
+indices = c(tpi, srad, hli, slope, burned)
+names(indices) = c("tpi500", "srad", "hli", "slope", "burned")
 
 covers_extended = extend(covers_merged, indices)
 indices_extended = extend(indices, covers_merged)
@@ -157,7 +158,7 @@ d3 = d2 |>
 d4 = d3 |>
   filter(keep) |>
   select(x, y, starts_with("max_cover_type_agg"), starts_with("max_cover_area_agg"), starts_with("tot_cover_agg"),
-         tpi500, srad, hli, slope, cell_index)
+         tpi500, srad, hli, slope, burned, cell_index)
 
 write_csv(d4, file.path(COMPILED_FOR_ANALYSIS_PATH, "veg_preds_and_topo_indices.csv"))
 

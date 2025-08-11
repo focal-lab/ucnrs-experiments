@@ -9,7 +9,7 @@ source("code/4_analysis-ecol/00_constants.R")
 
 dem = rast(file.path(DEMS_PATH, "dem_merged.tif"))
 
-## TPI at 500 m scale
+## TPI at 500 m scale. This is slow at DEM resolutions finer than 30 m. Could drastically speed up by splitting to BORR and Hast and doing each separately, then merging.
 tpi_merged = tpi(dem, win = "circle", scale = 500)
 writeRaster(tpi_merged, file.path(ENV_PREDS_PATH, "tpi500.tif"), overwrite = TRUE)
 

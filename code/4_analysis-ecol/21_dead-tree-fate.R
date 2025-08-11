@@ -34,7 +34,8 @@ library(mgcv)
 
 m = gam(tree_fate_bool ~ s(tpi500) + s(srad),
         data = d,
-        family = binomial(link = "logit"))
+        family = binomial(link = "logit"),
+        REML = TRUE)
 summary(m)
 
 # Use emmeans for partial effects

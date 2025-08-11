@@ -10,14 +10,20 @@ COVER_TYPES = c("HG_herbground", "SD_shrub_dead", "SL_shrub_live", "TD_tree_dead
 
 d = read_csv(file.path(COMPILED_FOR_ANALYSIS_PATH, "veg_preds_and_topo_indices.csv"))
 
+# Filter to burned only
+d = d |>
+  filter(burned == 1)
+
 d_agg = d |>
   group_by(max_cover_type_agg20, max_cover_type_agg23) |>
   summarise(n = n())
   
+n_pixels = sum(d_agg$n)
+
 d_sk = d_agg |>
   mutate(max_cover_type_agg20 = paste0(max_cover_type_agg20, "_20"),
          max_cover_type_agg23 = paste0(max_cover_type_agg23, "_23")) |>
-  mutate(n = n / 1000)
+  mutate(pct = n/n_pixels)
 
 nodes <- data.frame(
   name=c(as.character(d_sk$max_cover_type_agg20), 
@@ -30,7 +36,7 @@ d_sk$IDtarget <- match(d_sk$max_cover_type_agg23, nodes$name)-1
  
 # Make the Network
 p <- sankeyNetwork(Links = d_sk, Nodes = nodes,
-              Source = "IDsource", Target = "IDtarget", Value = "n", sinksRight = FALSE,
+              Source = "IDsource", Target = "IDtarget", Value = "pct", sinksRight = FALSE,
              NodeID = "name")
 p
 
