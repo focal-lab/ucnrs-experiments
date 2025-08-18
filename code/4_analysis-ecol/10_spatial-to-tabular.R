@@ -16,6 +16,7 @@ hast20 = st_read(file.path(VEG_PREDS_PATH, "Hastings_2020_merged_years.gpkg"))
 borr20 = st_read(file.path(VEG_PREDS_PATH, "BORR_2020_separate_years.gpkg"))
 hast23 = st_read(file.path(VEG_PREDS_PATH, "Hastings_2023_2024_merged_years.gpkg"))
 borr23 = st_read(file.path(VEG_PREDS_PATH, "BORR_2023_separate_years.gpkg"))
+# quail23 = st_read(file.path(VEG_PREDS_PATH, "Quail_2023_separate_years.gpkg"))
 
 # Merge "BE_bare_earth", "HL_herbaceous_live", "HD_herbaceous_dead", "MM_man_made_object" to "HG_herground"
 
@@ -43,6 +44,14 @@ borr23 = borr23 |>
                               "HL_herbaceous_live" = "HG_herbground",
                               "HD_herbaceous_dead" = "HG_herbground",
                               "MM_man_made_object" = "HG_herbground"))
+
+# quail23 = quail23 |>
+#   mutate(class_names = recode(class_names,
+#                               "BE_bare_earth" = "HG_herbground",
+#                               "HL_herbaceous_live" = "HG_herbground",
+#                               "HD_herbaceous_dead" = "HG_herbground",
+#                               "MM_man_made_object" = "HG_herbground"))
+                              
 
 # We need to get the area of each veg type within each pixel so that we can then aggregate to select
 # the most common veg type (assuming it is at least x% of the pixel)
@@ -78,6 +87,14 @@ covers_hast20 = lapply(COVER_TYPES, get_veg_type_cover, veg_layer_foc = hast20, 
 covers_borr20 = lapply(COVER_TYPES, get_veg_type_cover, veg_layer_foc = borr20, raster_template = dem, layer_suffix = "20") |> rast()
 covers_hast23 = lapply(COVER_TYPES, get_veg_type_cover, veg_layer_foc = hast23, raster_template = dem, layer_suffix = "23") |> rast()
 covers_borr23 = lapply(COVER_TYPES, get_veg_type_cover, veg_layer_foc = borr23, raster_template = dem, layer_suffix = "23") |> rast()
+# covers_quail23 = lapply(COVER_TYPES, get_veg_type_cover, veg_layer_foc = quail23, raster_template = dem, layer_suffix = "23") |> rast()
+
+# # Need to make a fake quail 20 layer with all NA so that downstream steps work
+# covers_quail20 = covers_quail23
+# values(covers_quail20) = NA
+
+# TODO: From here down, stopped trying to include Quail since it is only 1 year and doesn't fit with
+# the rest of the logic for only including pixels that had preds in both years
 
 # Within a year, merge the covers across reserves
 covers_merged_20 = merge(covers_hast20, covers_borr20)

@@ -1,7 +1,10 @@
 # Purpose: Conctruct a veg cover transition visualization
 
+# NOTE: On linux I had to set the env var export OPENSSL_CONF="" to get webshot to work
+
 library(tidyverse)
 library(networkD3)
+library(webshot)
 
 source("code/4_analysis-ecol/00_constants.R")
 
@@ -37,7 +40,11 @@ d_sk$IDtarget <- match(d_sk$max_cover_type_agg23, nodes$name)-1
 # Make the Network
 p <- sankeyNetwork(Links = d_sk, Nodes = nodes,
               Source = "IDsource", Target = "IDtarget", Value = "pct", sinksRight = FALSE,
-             NodeID = "name")
+             NodeID = "name", fontSize = 20)
 p
 
+saveNetwork(p, file.path(TEMP_PATH, "veg-cover-transition-sankey.html"))
+
+webshot(file.path(TEMP_PATH, "veg-cover-transition-sankey.html"),
+        file.path(FIGURES_PATH, "veg-cover-transition-sankey.png"), vwidth = 1000, vheight = 600)
 
