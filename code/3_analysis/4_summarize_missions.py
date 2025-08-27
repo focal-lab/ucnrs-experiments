@@ -2,7 +2,7 @@ import sys
 import geopandas as gpd
 from pathlib import Path
 import pandas as pd
-from shapely import box, union
+from shapely import box, intersection
 from spatial_utils.geospatial import ensure_projected_CRS
 
 # Add folder where constants.py is to system search path
@@ -44,8 +44,8 @@ print(
 # Determine which surveys were during leaf-on times
 all_surveys = metadata[leaf_on_index]
 # Keep only the year and the geometry
-all_surveys["early_vs_late"] = all_surveys["earliest_year_derived"] > "2020"
-all_surveys = all_surveys[["early_vs_late", "geometry"]]
+all_surveys["early"] = all_surveys["earliest_year_derived"] == "2020"
+all_surveys = all_surveys[["early", "geometry"]]
 # Convert to a projected CRS so the area will be valid m^2
 all_surveys = ensure_projected_CRS(all_surveys)
 
@@ -54,8 +54,19 @@ RESERVE_BOUNDS.to_crs(all_surveys.crs, inplace=True)
 all_surveys = gpd.sjoin(all_surveys, RESERVE_BOUNDS, how="left", predicate="intersects")
 
 # Dissolve by reserve and year
-all_surveys_grouped_by_year_reserve = all_surveys.dissolve(["reserve", "early_vs_late"])
-breakpoint()
+all_surveys_grouped_by_year_reserve = all_surveys.dissolve(["reserve", "early"])
+print(all_surveys_grouped_by_year_reserve.area / 1e4)
+
+hast_intersection = intersection(
+    all_surveys_grouped_by_year_reserve.loc[("Hastings", True)].geometry,
+    all_surveys_grouped_by_year_reserve.loc[("Hastings", False)].geometry,
+)
+BORR_intersection = intersection(
+    all_surveys_grouped_by_year_reserve.loc[("BORR", True)].geometry,
+    all_surveys_grouped_by_year_reserve.loc[("BORR", False)].geometry,
+)
+print(f"Hast intersection area {hast_intersection.area / 1e4}")
+print(f"BORR intersection area {BORR_intersection.area / 1e4}")
 
 # Compute the areas which were predicted
 hast_early = gpd.read_file(
@@ -65,7 +76,7 @@ hast_late = gpd.read_file(
     "/ofo-share/repos-david/UCNRS-experiments/data/outputs/merged_maps/Hastings_2023_2024_merged.gpkg"
 )
 hast_intersection = gpd.read_file(
-    "/ofo-share/repos-david/UCNRS-experiments/data/outputs/merged_clipped_maps/Hastings_2020_separate_years.gpkg"
+    "/ofo-share/repos-david/UCNRS-experiments/data/outputs/merged_clipped_maps/Hastings_2020_merged_years.gpkg"
 )
 
 borr_early = gpd.read_file(
