@@ -2,7 +2,7 @@ import sys
 import geopandas as gpd
 from pathlib import Path
 import pandas as pd
-from shapely import box
+from shapely import box, union
 from spatial_utils.geospatial import ensure_projected_CRS
 
 # Add folder where constants.py is to system search path
@@ -41,12 +41,21 @@ leaf_on_index = (int_month_day > LEAF_ON_START_DATE) & (
 print(
     f"{len(leaf_on_index) - leaf_on_index.sum()} rows that were leaf off were dropped"
 )
-all_preds = metadata[leaf_on_index]
-all_preds = ensure_projected_CRS(all_preds)
-RESERVE_BOUNDS.to_crs(all_preds.crs, inplace=True)
-all_preds = gpd.sjoin(all_preds, RESERVE_BOUNDS, how="left", predicate="intersects")
-grouped_by_year_reserve = all_preds.dissolve(["reserve", "earliest_year_derived"])
-print(grouped_by_year_reserve.area)
+# Determine which surveys were during leaf-on times
+all_surveys = metadata[leaf_on_index]
+# Keep only the year and the geometry
+all_surveys["early_vs_late"] = all_surveys["earliest_year_derived"] > "2020"
+all_surveys = all_surveys[["early_vs_late", "geometry"]]
+# Convert to a projected CRS so the area will be valid m^2
+all_surveys = ensure_projected_CRS(all_surveys)
+
+# Add a field for what reserve each dataset came from
+RESERVE_BOUNDS.to_crs(all_surveys.crs, inplace=True)
+all_surveys = gpd.sjoin(all_surveys, RESERVE_BOUNDS, how="left", predicate="intersects")
+
+# Dissolve by reserve and year
+all_surveys_grouped_by_year_reserve = all_surveys.dissolve(["reserve", "early_vs_late"])
+breakpoint()
 
 # Compute the areas which were predicted
 hast_early = gpd.read_file(
@@ -72,6 +81,7 @@ borr_intersection = gpd.read_file(
 Quail_late = gpd.read_file(
     "/ofo-share/repos-david/UCNRS-experiments/data/outputs/merged_maps/Quail_2023.gpkg"
 )
+
 
 print(f"Hast early area {hast_early.area.sum() / 1e4}")
 print(f"Hast late area {hast_late.area.sum() / 1e4}")
