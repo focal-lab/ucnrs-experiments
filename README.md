@@ -48,3 +48,4 @@ The goal of this section is to conduct the final interpretation of the results. 
 - `1_merge_within_site_year.py`: There are multiple datasets for each site and year and this script merges the predictions across all of them. For each location, the final class is assigned based on what was predicted most commonly across all datasets. If there is a tie, it is broken in favor of the rare classes, as determined in advance.
 - `2_clip_to_intersection.py`: Clips the predicted maps to only the region which is present in all years for which any data exists.
 - `3_show_transition.py`: Computes the fraction of each class for each site and year. Then, within a given site, the fraction of each class in the first year that transitions to each other class is computed.
+- `4_summarize_missions.py`: Compute summary statistics about the areas of the missions.
