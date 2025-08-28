@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/924828863.svg)](https://doi.org/10.5281/zenodo.16987365)
+
 # Overview
 This repository contains the processing steps to replicate experiments on a vegetation mapping task using UAV imagery. This project was conducted at three sites within the University of California Natural Reserve System ([UCNRS](https://ucnrs.org/)). Imagery was collected during 60 UAV missions flown in 2020, 2023, and 2024. The objective was to study post-fire vegetation dynamics following fires that occured at all three reserves in 2020, prior to when any imagery was collected.
 
