@@ -12,12 +12,20 @@ source("code/4_analysis-ecol/00_constants.R")
 # Plotting function for one reserve and one year, to use across all reserves and years
 map_one_reserve_one_year = function(pred, target_poly, bbox, title, include_legend = FALSE) {
 
+  # Change the veg pred names to be consistent with elsewhere in the paper
+  pred = pred |>
+    mutate(veg_pred = case_when(veg_pred == "TD_tree_dead" ~ "Tree Dead",
+                                veg_pred == "TL_tree_live" ~ "Tree Live",
+                                veg_pred == "HG_herbground" ~ "Herbaceous & Bare",
+                                veg_pred == "SL_shrub_live" ~ "Shrub Live",
+                                veg_pred == "SD_shrub_dead" ~ "Shrub Dead"))
+
   if(include_legend == TRUE) {guide_arg = "legend"} else {guide_arg = "none"} 
 
   ggplot() +
-    scale_fill_manual(values = c("TD_tree_dead" = "#c9a628", "TL_tree_live" = "darkgreen", "HG_herbground" = "#ece47d",
-                                  "SL_shrub_live" = "#5ac45a", "SD_shrub_dead" = "#8e7b5f"),
-                      na.value = "grey90", na.translate = FALSE, guide = guide_arg) +
+    scale_fill_manual(values = c("Tree Dead" = "#c9a628", "Tree Live" = "darkgreen", "Herbaceous & Bare" = "#ece47d",
+                                  "Shrub Live" = "#5ac45a", "Shrub Dead" = "#8e7b5f"),
+                      na.value = "grey90", na.translate = FALSE, guide = guide_arg, name = NULL) +
     # make the fill a very transparent orange
     geom_sf(data = fires, fill = "#ffe5a479", color = "orange", linewidth = 0.6) +
     theme_minimal() +
@@ -27,7 +35,8 @@ map_one_reserve_one_year = function(pred, target_poly, bbox, title, include_lege
     geom_sf(data = fires, fill = "NA", color = "orange", linewidth = 0.6) +
     coord_sf(xlim = c(bbox["xmin"], bbox["xmax"]),
                 ylim = c(bbox["ymin"], bbox["ymax"])) +
-    labs(title = title)
+    labs(title = title) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 }
 
@@ -99,7 +108,8 @@ borr23 = map_one_reserve_one_year(pred = pred, target_poly = target_poly, bbox =
 # Combine with patchwork
 
 p = (hast20 + hast23) / (borr20 + borr23) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+p
 
-png(file.path(FIGURES_PATH, "veg-pred-maps-30m.png"), width = 1200, height = 1000, res = 150)
+png(file.path(FIGURES_PATH, "veg-pred-maps-30m.png"), width = 1200, height = 1200, res = 150)
 print(p)
 dev.off()
