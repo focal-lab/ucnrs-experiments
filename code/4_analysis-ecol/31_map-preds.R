@@ -73,7 +73,7 @@ bbox = st_bbox(hast20_fine) # Year doesn't matter, just using to define the exte
 pred = crop(agg_pred_rast_20, bbox)
 target_poly = crop(target, bbox) |> as.polygons(dissolve = TRUE)
 
-hast20 = map_one_reserve_one_year(pred = pred, target_poly = target_poly, bbox = bbox, title = "Hastings early")
+hast20 = map_one_reserve_one_year(pred = pred, target_poly = target_poly, bbox = bbox, title = "Hastings early", include_legend = TRUE)
 
 
 # Hast 23
@@ -81,7 +81,7 @@ bbox = st_bbox(hast20_fine) # Year doesn't matter, just using to define the exte
 pred = crop(agg_pred_rast_23, bbox)
 target_poly = crop(target, bbox) |> as.polygons(dissolve = TRUE)
 
-hast23 = map_one_reserve_one_year(pred = pred, target_poly = target_poly, bbox = bbox, title = "Hastings late", include_legend = TRUE)
+hast23 = map_one_reserve_one_year(pred = pred, target_poly = target_poly, bbox = bbox, title = "Hastings late")
 
 
 # Borr 20
