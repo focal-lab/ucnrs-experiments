@@ -38,9 +38,12 @@ merged_dem = terra::vrt(sprc(hast20_dem, borr20_dem, quail23_dem), overwrite = T
 # Reproject to UTM so we can do other operations in meters (also this is the CRS of the veg cover predictions)
 merged_dem = project(merged_dem, "epsg:32610", method = "bilinear")
 
-# # Disaggregate to 15 m resolution
-# merged_dem = disagg(merged_dem, fact = 2, method = "bilinear")
-
-
 # Write
 writeRaster(merged_dem, filename = file.path(DEMS_PATH, "dem_merged.tif"), overwrite = TRUE)
+
+
+# Create a version disaggregated to 3 m resolution
+merged_dem_disagg = disagg(merged_dem, fact = 10, method = "bilinear")
+
+# Write
+writeRaster(merged_dem_disagg, filename = file.path(DEMS_PATH, "dem_merged_disagg.tif"), overwrite = TRUE)
