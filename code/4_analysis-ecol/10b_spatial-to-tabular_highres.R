@@ -123,7 +123,8 @@ for(i in 1:length(focal_covers)) {
   covers_merged = c(focal_20, focal_23, contains_preds)
 
 
-  ## Layer in the fire history
+  ## Layer in the fire history. Coded as 1 (burned), 0 (unburned), NA (too close to a fire
+  ## perimeter to be confident either way; these cells get dropped below)
   burned = rast(file.path(FIRE_PERIMS_PATH, "burned-2020_disagg.tif"))
 
   indices = c(burned)
@@ -153,8 +154,10 @@ for(i in 1:length(focal_covers)) {
   stack = c(stack, index_rast)
 
 
-  d = as.data.frame(stack, xy = TRUE)
+  d = as.data.frame(stack, xy = TRUE, na.rm = FALSE)
   d = d[!is.na(d$contains_preds), ]
+  # Drop cells in the buffer around the fire perimeters, where burn status is uncertain
+  d = d[!is.na(d$burned), ]
 
   # Get the max cover type for each pixel
 
